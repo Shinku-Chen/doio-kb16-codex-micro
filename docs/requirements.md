@@ -53,7 +53,7 @@ DOIO KB16-01 是 16 键 + 3 旋钮 + 128×32 单色 OLED 的有线 macropad。�
 |---|---|
 | Codex 模式 | 设备以 `303A:8360` 出现，ChatGPT 识别为 Codex Micro |
 | VIA 模式 | 设备以 `D010:1601` 出现，VIA 识别为 KB16-01 |
-| 层 0 | Codex 原生层，固定 16 个原生控制 |
+| 层 0 | Codex 原生层，固定 16 个逻辑原生控制（12 键 + 3 旋钮） |
 | 层 1-3 | Number / Navigation / System，VIA 可编辑 |
 | 任务槽 | AG00-AG05 对应的 6 个 Codex 任务灯 |
 | 30s 窗口 | 插电后允许 VIA 连接的初始时间 |
@@ -64,9 +64,15 @@ DOIO KB16-01 是 16 键 + 3 旋钮 + 128×32 单色 OLED 的有线 macropad。�
 
 - 设备以 `VID 0x303A / PID 0x8360` 枚举。
 - Raw HID：usage page `0xFF00`，usage `0x0001`，Report ID `6`，64 字节报告。
-- 层 0 包含且仅包含 16 个原生控制：`AG00-AG05`、四方向摇杆、`ACT06/07/08/09/12`、Mic（`ACT10`）。
-- `ACT11` 永不发送。
-- 左旋钮固定为 `ENC_CC` / `ENC_CW` / `ENC_SW`。
+- 层 0 按 `docs/keymap.md` 的 4×4 **位置对应**：
+  - KB16 R1C2/R1C3/R2C1-R2C4 → AG00-AG05
+  - KB16 R3C1-R3C4 → ACT06-ACT09
+  - KB16 R4C1 → Mic（ACT10）
+  - KB16 R4C3 → ACT12
+  - KB16 R1C1 / R1C4 / R4C2 / R4C4 → 不使用
+- 逻辑上仍发送 16 个原生控制：AG00-05、四方向摇杆（由两个摇杆轴旋钮产生）、ACT06-09、ACT12、Mic；`ACT11` 永不发送。
+- 3 个旋钮：1 个 Codex 原生编码器（CC/CW/Press）+ 2 个摇杆轴（X/Y）。
+- 编码器/摇杆用旋钮的具体物理分配可按手感调整。
 - ChatGPT 可通过 `v.oai.thstatus` 驱动 6 个任务灯；选中/需要关注的任务使用呼吸效果。
 
 ### FR-2 VIA 模式
@@ -90,7 +96,7 @@ DOIO KB16-01 是 16 键 + 3 旋钮 + 128×32 单色 OLED 的有线 macropad。�
 
 ### FR-4 层职责
 
-- 层 0：纯 Codex 原生控制；不允许 VIA 写。
+- 层 0：纯 Codex 原生控制，按 `docs/keymap.md` 的位置映射；不允许 VIA 写。
 - 层 1：Number。
 - 层 2：Navigation。
 - 层 3：System。
@@ -165,6 +171,7 @@ Codex 模式（303A:8360，FF00:0001，Report 6，64B）
 - `via_command_kb()` 负责 VIA 命令检测，并把 64B/Report ID 6 的 Codex 报文路由给 Codex。
 - `poc_mode.c` 管理 30s 窗口和 `.noinit` 标志。
 - `poc_usb.c` 提供描述符选择接口；真正切换由 QMK core patch 实现。
+- 层 0 的位置映射见 `docs/keymap.md`：12 个 Codex 键 + 3 个旋钮，左上/右上/右下/下排中间键不使用。
 - `poc_oled.c` 渲染层号/任务状态；`poc_quota.c` 可选。
 
 ## 8. 验收标准
@@ -173,7 +180,7 @@ Codex 模式（303A:8360，FF00:0001，Report 6，64B）
 2. 30 秒内没有 VIA 命令，设备自动切到 Codex，ChatGPT 识别为 Codex Micro。
 3. VIA 连接后一直保持；断电重插后 30 秒内不连接 VIA，设备切到 Codex。
 4. VIA 能读写层 1-3；尝试写层 0 被拒绝，层 0 原生控制不变。
-5. Codex 模式下 AG/ACT/Mic/摇杆/左旋钮事件正常。
+5. Codex 模式下 AG/ACT/Mic 键 + 3 个旋钮（编码器/摇杆 X/Y）事件正常；未使用键不发送 Codex 事件。
 6. 6 个任务灯按 `v.oai.thstatus` 显示；选中任务有呼吸效果。
 7. OLED 显示层号和六个任务状态；无 host 程序时任务状态显示 `.`。
 8. 断电重启后 VIA 层 1-3 键位和 Codex 配置都保留。
@@ -197,6 +204,7 @@ Codex 模式（303A:8360，FF00:0001，Report 6，64B）
 - STM32F103 端点/描述符资源是否足够；顺序模式比同时双接口简单。
 - VIA 的 encoder/lighting 支持范围需要按 definition 实测。
 - 30 秒窗口对首次打开 VIA 偏紧；可改 60 秒或按住键强制 VIA。
+- 位置映射需要改 `native_keys`、旋钮动作、校验和任务灯映射；ACT11 位置空置。
 - 逆向协议可能随 ChatGPT 更新失效。
 
 ## 11. 里程碑
@@ -206,6 +214,7 @@ Codex 模式（303A:8360，FF00:0001，Report 6，64B）
 | M1 | 仓库清理：移除预编译固件、Mapper，添加 `.gitignore` | 已完成 |
 | M2 | PoC 骨架：模式标志、30s 窗口、VIA 命令检测、OLED 层号/任务状态 | 已完成（未编译验证） |
 | M3 | USB 描述符切换 core patch + VIA_ENABLE | 待做 |
+| M3.5 | 位置映射改造：12 键 + 3 旋钮（编码器/摇杆 X/Y） | 待做 |
 | M4 | VIA layer offset + EEPROM 分区 | 待做 |
 | M5 | 实机编译/刷写/验收 | 待做 |
 | M6 | OLED 自定义图标/任务高亮增强 | 待做 |

@@ -1,114 +1,101 @@
-# Codex Micro ↔ KB16 键位对应图
+# Codex Micro ↔ KB16 位置对应图
 
-> 说明：Codex Micro 部分按官方 13 键的逻辑分组（2 + 4 + 4 + 3）绘制，不是官方 PCB 丝印位置；KB16 部分是固件层 0 的默认 4×4 布局。
+> 按 4×4 物理位置对应。Codex Micro 的左上角是编码器、右上角是摇杆，不是按键；KB16 对应位置的两个键空出，编码器/摇杆功能交给 3 个旋钮。
 
-## Codex Micro（逻辑布局）
+## Codex Micro 4×4
 
 ```text
-              ┌──────────┐
-              │ Encoder  │  CC / CW / Press
-              └──────────┘
-
 ┌────────┬────────┬────────┬────────┐
-│ AG00   │ AG01   │        │        │
+│ ENC    │ AG00   │ AG01   │ JOY    │
 ├────────┼────────┼────────┼────────┤
 │ AG02   │ AG03   │ AG04   │ AG05   │
 ├────────┼────────┼────────┼────────┤
 │ ACT06  │ ACT07  │ ACT08  │ ACT09  │
 ├────────┼────────┼────────┼────────┤
-│ Mic    │ ACT11  │ ACT12  │        │
+│ Mic    │ ACT11  │ ACT12  │ empty  │
 └────────┴────────┴────────┴────────┘
-
-┌──────────────┐
-│ Touch sensor │  左下角：切层（最多 6 层）
-└──────────────┘
-
-┌──────────────┐
-│   Joystick   │  模拟摇杆：↑ → ← ↓
-└──────────────┘
 ```
 
-## KB16 层 0（默认 Codex 布局）
+- `ENC`：左上编码器（CC / CW / Press）
+- `JOY`：右上平面摇杆（↑ → ← ↓）
+- `ACT11`：官方有独立键；当前 KB16 固件不发 ACT11
+- `empty`：官方 13 键布局里的空位
+- 触摸传感器在机身边缘，不在 4×4 键位里
+
+## KB16 位置对应
 
 ```text
-┌─────────┬─────────┬──────────────┬──────────────┐
-│ AG00    │ AG01    │ 摇杆 ↑       │ 摇杆 →       │
-├─────────┼─────────┼──────────────┼──────────────┤
-│ AG02    │ AG03    │ 摇杆 ←       │ 摇杆 ↓       │
-├─────────┼─────────┼──────────────┼──────────────┤
-│ AG04    │ AG05    │ ACT06        │ ACT07        │
-├─────────┼─────────┼──────────────┼──────────────┤
-│ ACT08   │ ACT09   │ ACT12        │ Mic（ACT10） │
-└─────────┴─────────┴──────────────┴──────────────┘
-
-左旋钮 = Codex 原生编码器（ENC_CC / ENC_CW / ENC_SW）
-中/右旋钮 = KB16 额外旋钮（默认滚轮/切层等）
-OLED = 层号 / 任务状态
+┌────────┬────────┬────────┬────────┐
+│ UNUSED │ AG00   │ AG01   │ UNUSED │
+│ (=ENC) │        │        │ (=JOY) │
+├────────┼────────┼────────┼────────┤
+│ AG02   │ AG03   │ AG04   │ AG05   │
+├────────┼────────┼────────┼────────┤
+│ ACT06  │ ACT07  │ ACT08  │ ACT09  │
+├────────┼────────┼────────┼────────┤
+│ Mic    │ UNUSED │ ACT12  │ UNUSED │
+│        │ (ACT11)│        │ (empty)│
+└────────┴────────┴────────┴────────┘
 ```
 
-## 对应关系
+- 左上键：对应 Codex 的编码器位置，**不用**；编码器功能交给旋钮 A。
+- 右上键：对应 Codex 的摇杆位置，**不用**；摇杆功能交给旋钮 B/C。
+- 右下键：对应 Codex 的空位，**不用**。
+- 下排中间：对应 Codex 的 ACT11；当前固件不发送 ACT11，所以也**不用**。
+- 实际参与 Codex 的键：AG00-AG05、ACT06-ACT09、ACT12、Mic，共 12 个。
 
-| Codex Micro 控制 | KB16 层 0 位置 | 说明 |
+## 3 个旋钮
+
+| 旋钮 | 对应 Codex 控制 | 动作 |
 |---|---|---|
-| AG00 | R1C1 | 6 个 Agent 键之一 |
-| AG01 | R1C2 | 6 个 Agent 键之一 |
-| AG02 | R2C1 | 6 个 Agent 键之一 |
-| AG03 | R2C2 | 6 个 Agent 键之一 |
-| AG04 | R3C1 | 6 个 Agent 键之一 |
-| AG05 | R3C2 | 6 个 Agent 键之一 |
-| Joystick ↑ | R1C3 | 数字方向键，无模拟量 |
-| Joystick → | R1C4 | 数字方向键，无模拟量 |
-| Joystick ← | R2C3 | 数字方向键，无模拟量 |
-| Joystick ↓ | R2C4 | 数字方向键，无模拟量 |
-| ACT06 | R3C3 | 默认 Fast mode |
-| ACT07 | R3C4 | 默认 Approve |
-| ACT08 | R4C1 | 默认 Reject |
-| ACT09 | R4C2 | 默认 Split / Fork |
-| ACT12 | R4C3 | 默认 Submit / Codex |
-| Mic（ACT10） | R4C4 | Push-to-talk / Voice Chat |
-| ACT11 | 无 | KB16 没有独立键，固件不发送 |
-| Encoder | 左旋钮 | CC / CW / Press，Codex 层锁定 |
-| Touch sensor | 无直接对应 | KB16 用中旋钮/System 层切层 |
-| 3 个层 LED | OLED | KB16 用屏幕显示层号 |
-| 6 层 | 4 层 | Codex / Number / Navigation / System |
+| 旋钮 A | 左上编码器 | CC / CW / Press → `ENC_CC` / `ENC_CW` / `ENC_SW` |
+| 旋钮 B | 右上摇杆 X | 顺时针 = 右，逆时针 = 左 |
+| 旋钮 C | 右上摇杆 Y | 顺时针 = 上，逆时针 = 下 |
 
-## 逻辑映射图
+旋钮 A/B/C 对应 KB16 的哪三个实体旋钮，可以按手感分配；建议把最大的旋钮留给编码器，两个小旋钮做 X/Y。
 
-```mermaid
-flowchart LR
-  subgraph CM["Codex Micro（逻辑）"]
-    CM_AG["AG00-AG05<br/>6 agent keys"]
-    CM_JOY["Joystick<br/>↑ → ← ↓"]
-    CM_ACT["ACT06-09 / ACT12"]
-    CM_MIC["Mic ACT10"]
-    CM_ENC["Encoder<br/>CC / CW / Press"]
-    CM_TOUCH["Touch sensor<br/>6 layers"]
-  end
+## 位置映射表
 
-  subgraph KB["KB16 层 0"]
-    KB_AG["左上/中左 6 键<br/>AG00-AG05"]
-    KB_JOY["右上 2×2<br/>摇杆方向键"]
-    KB_ACT["右下 5 键<br/>ACT06-09/12"]
-    KB_MIC["右下角<br/>Mic"]
-    KB_ENC["左旋钮<br/>native encoder"]
-    KB_LAYER["中旋钮 / System 层<br/>切层"]
-    KB_OLED["OLED<br/>层号/任务状态"]
-  end
+| Codex Micro 位置 | Codex 控制 | KB16 位置 | KB16 控制 |
+|---|---|---|---|
+| R1C1 | ENC | 4×4 外 | 旋钮 A |
+| R1C2 | AG00 | R1C2 | AG00 |
+| R1C3 | AG01 | R1C3 | AG01 |
+| R1C4 | JOY | 4×4 外 | 旋钮 B/C |
+| R2C1 | AG02 | R2C1 | AG02 |
+| R2C2 | AG03 | R2C2 | AG03 |
+| R2C3 | AG04 | R2C3 | AG04 |
+| R2C4 | AG05 | R2C4 | AG05 |
+| R3C1 | ACT06 | R3C1 | ACT06 |
+| R3C2 | ACT07 | R3C2 | ACT07 |
+| R3C3 | ACT08 | R3C3 | ACT08 |
+| R3C4 | ACT09 | R3C4 | ACT09 |
+| R4C1 | Mic（ACT10） | R4C1 | Mic |
+| R4C2 | ACT11 | R4C2 | UNUSED |
+| R4C3 | ACT12 | R4C3 | ACT12 |
+| R4C4 | empty | R4C4 | UNUSED |
 
-  CM_AG --> KB_AG
-  CM_JOY --> KB_JOY
-  CM_ACT --> KB_ACT
-  CM_MIC --> KB_MIC
-  CM_ENC --> KB_ENC
-  CM_TOUCH -.-> KB_LAYER
-  CM_TOUCH -.-> KB_OLED
-```
+## 默认动作
+
+| Codex 控制 | 默认动作 |
+|---|---|
+| AG00-AG05 | 6 个 Agent 键；默认跟随 Recent chats，可改 Pinned / Priority / Custom |
+| 摇杆 ↑ | Toggle Plan Mode |
+| 摇杆 → | Forward |
+| 摇杆 ↓ | Toggle Sidebar |
+| 摇杆 ← | Back |
+| ACT06 | Fast mode |
+| ACT07 | Approve |
+| ACT08 | Reject |
+| ACT09 | Split / Fork |
+| ACT12 | Submit / Codex |
+| Mic（ACT10） | Push-to-talk / Voice Chat |
 
 ## 关键差异
 
-- **摇杆**：官方是模拟摇杆，Codex 只取四方向；KB16 用四个数字键。
-- **触摸传感器**：KB16 没有；用中旋钮按下/System 层动作替代切层。
-- **层数**：官方最多 6 层；KB16 固定 4 层。
-- **ACT11**：官方有独立键；KB16 没有，固件空槽，Mic 使用 ACT10。
-- **编码器**：官方 1 个；KB16 3 个，只有左旋钮是 Codex 原生编码器。
-- **屏幕**：官方没有；KB16 有 128×32 OLED。
+- **左上/右上**：官方是编码器/摇杆，不是按键；KB16 对应键空出，功能移到 3 个旋钮。
+- **AG 灯**：6 个 AG 键在 R1C2、R1C3、R2C1-R2C4，任务灯跟着这 6 个位置。
+- **ACT11**：官方有独立键；当前 KB16 固件不发 ACT11，所以 R4C2 空着。
+- **触摸传感器**：官方在机身边缘；KB16 没有，用旋钮按下/System 层切层替代。
+- **旋钮数量**：官方 1 个；KB16 3 个，建议 1 个编码器 + 2 个摇杆轴。
+- **当前固件状态**：现有默认 `native_keys` 还是旧的 16 键布局（右上 2×2 当摇杆）；这份位置映射是目标方案，落地时需要改 `native_keys`、旋钮动作和校验。
