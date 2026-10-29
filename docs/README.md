@@ -20,6 +20,9 @@
 - `oled.md` — 128×32 OLED 自定义图案
 - `development.md` — 构建、刷写、测试、贡献
 - `faq.md` — 常见问题
+- `poc.md` — VIA/Codex 顺序模式 PoC 骨架
+- `quota.md` — Codex 额度获取与 OLED 显示
+- `upstream/` — 上游使用/协议/发布文档
 
 ## 安全提示
 

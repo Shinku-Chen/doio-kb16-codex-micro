@@ -10,20 +10,20 @@ DOIO KB16-01 Rev2（APM32F103CBT6，128 KB Flash）的 Codex Micro 兼容固件�
 
 ## 目录结构
 
-当前仓库处于初始化阶段，源码尚未导入；计划结构如下（导入后按实际调整）：
+已导入上游固件与 Mapper 源码；PoC 骨架位于 `firmware/keymaps/codex_micro_configurable_v1_3/poc_*`。目录如下：
 
 ```
 firmware/        QMK 固件与 keymap（codex_micro_configurable_v1_3）
 mapper/          Windows WPF 键位/灯光配置工具（可选）
-docs/            使用、硬件、协议、OLED、开发与 FAQ 文档
-tools/           OLED 图标生成、校验与刷写辅助脚本
+docs/            使用、硬件、协议、OLED、开发、FAQ、PoC 与额度文档
+firmware/qmk-core-patches/  USB/VIA/OLED 等 QMK core patch 与设计稿
 ```
 
 文档入口：`docs/README.md`。
 
 ## 构建与验证
 
-> 源码导入后生效；当前仓库只有文档，以下命令暂不可运行。
+> 源码已导入；需要先完成 QMK setup，并按 `firmware/qmk-core-patches/` 应用 core patch。
 
 ```bash
 # QMK 固件（需先安装 QMK 与 ARM 工具链）
@@ -35,6 +35,19 @@ python3 firmware/keymaps/codex_micro_configurable_v1_3/tools/validate_keymap.py
 ```
 
 改动后至少跑构建与静态校验；涉及协议/键位/灯光时补跑对应测试。刷写前必须确认硬件为 KB16-01 Rev2、Bootloader 为 STM32duino/Maple，并核对固件 SHA-256。
+
+## PoC 开关
+
+```bash
+# VIA/Codex 顺序模式 + OLED 仪表盘
+qmk compile -kb doio/kb16/rev2 -km codex_micro_configurable_v1_3 \
+  POC_MODE_SWITCH=yes POC_OLED_STATUS=yes
+```
+
+- `POC_MODE_SWITCH=yes`：`poc_mode.c` / `poc_usb.c` / `poc_via.c`
+- `POC_OLED_STATUS=yes`：`poc_oled.c` / `poc_quota.c`
+- 还需要 `VIA_ENABLE=yes`、`DYNAMIC_KEYMAP_ENABLE=yes`，以及 `firmware/qmk-core-patches/POC-usb-switch.md`、`POC-via-layers.md` 描述的 core patch。
+- 设计说明：`docs/poc.md`；额度：`docs/quota.md`。
 
 ## 硬件与协议边界
 

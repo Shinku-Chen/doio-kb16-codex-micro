@@ -4,3 +4,7 @@
 
 - 初始化私有仓库与项目文档：新增 `AGENTS.md`、`CHANGELOG.md`。
 - 新增项目文档：`docs/` 下的 README、硬件、使用、Codex Micro 对比、协议、OLED、开发与 FAQ。
+
+- 导入上游固件、Mapper、QMK core patches 与上游文档。
+- 新增 PoC 骨架：模式标志、30s/60s 切换、USB 描述符选择 stub、VIA 命令检测、OLED 层号/任务状态/额度占位。
+- 新增 `docs/poc.md`、`docs/quota.md` 以及 USB/VIA core patch 设计稿。
