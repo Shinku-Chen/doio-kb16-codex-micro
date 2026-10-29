@@ -2,6 +2,8 @@
 
 > 2026-10-29 范围更新：不再需要 VIA。目标改为「完整兼容 Codex Micro + 能用 Work Louder Input 自定义键盘内容」。
 
+> 参考实现：`conol-ai/openmicrokbd` 已经在 STM32F072（128 KB Flash / 16 KB RAM）上实现了 Codex Micro compat + Input `fs.*` + keymap.json/smart_actions.json；详见 `docs/openmicrokbd.md`。
+
 ## 结论
 
 **可行，但不是小改。** 这是把官方 ESP32-S3 固件里的 **LittleFS + keymap.json + smart_actions + fs RPC + action 引擎** 搬到 KB16 的 STM32F103/QMK 上。
