@@ -16,3 +16,5 @@
 - 移除 Mapper；仓库只保留固件源码/构建/文档，不再包含 Windows 配置工具。
 
 - 新增 `docs/requirements.md`：汇总项目目标、功能/非功能需求、验收标准、非目标和里程碑。
+
+- 新增 `docs/keymap.md`：Codex Micro 与 KB16 层 0 的键位对应图、映射表和逻辑关系图。
