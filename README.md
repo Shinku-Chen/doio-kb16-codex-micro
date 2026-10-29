@@ -14,6 +14,7 @@ DOIO KB16-01 Rev2 的 Codex Micro 兼容固件生成仓库。目标是把 16 键
 
 - [需求文档](docs/requirements.md)
 - [完整实现路线](docs/full-implementation.md)
+- [Input 兼容方案](docs/input-compatibility.md)
 - [键位对应图](docs/keymap.md)
 - [硬件与兼容性](docs/hardware.md)
 - [使用与刷写](docs/usage.md)

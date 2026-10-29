@@ -20,3 +20,5 @@
 - 新增 `docs/keymap.md`：Codex Micro 与 KB16 层 0 的键位对应图、映射表和逻辑关系图。
 
 - 新增 `docs/full-implementation.md`：官方 ESP32-S3 固件分析、KB16 可行子集、fs/keymap/RPC 完整实现路线。
+
+- 新增 `docs/input-compatibility.md`：放弃 VIA 后的 Codex Micro + Work Louder Input 兼容方案、fs RPC/keymap.json 路线与 KB16 资源风险。

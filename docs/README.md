@@ -15,6 +15,7 @@
 
 - `requirements.md` — 需求基线、功能/非功能需求、验收标准
 - `full-implementation.md` — 完整实现 Codex Micro 固件的路线与可行性
+- `input-compatibility.md` — Work Louder Input 兼容方案与 fs/keymap PoC 路线
 - `keymap.md` — Codex Micro ↔ KB16 键位对应图
 - `hardware.md` — 硬件版本、USB 身份、Bootloader、刷写安全
 - `usage.md` — 刷写、ChatGPT 设置、改键、恢复

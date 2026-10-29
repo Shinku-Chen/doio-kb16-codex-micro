@@ -1,6 +1,6 @@
 # DOIO KB16 Codex Micro 固件需求文档
 
-> 状态：PoC 需求基线  
+> 状态：PoC 需求基线（2026-10-29 范围更新：VIA 不再需要，目标改为 Codex Micro + Work Louder Input 兼容；VIA 章节保留为历史设计，详见 `docs/input-compatibility.md`）  
 > 适用范围：DOIO KB16-01 Rev2（APM32F103CBT6）  
 > 仓库定位：只负责生成固件；不包含 Mapper、不提交预编译固件
 
