@@ -15,9 +15,11 @@ DOIO KB16-01 Rev2（APM32F103CBT6，128 KB Flash）的 Codex Micro 兼容固件�
 ```
 firmware/        QMK 固件与 keymap（codex_micro_configurable_v1_3）
 mapper/          Windows WPF 键位/灯光配置工具（可选）
-docs/            使用、发布、协议与兼容性文档
+docs/            使用、硬件、协议、OLED、开发与 FAQ 文档
 tools/           OLED 图标生成、校验与刷写辅助脚本
 ```
+
+文档入口：`docs/README.md`。
 
 ## 构建与验证
 
