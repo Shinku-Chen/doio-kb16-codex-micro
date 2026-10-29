@@ -18,7 +18,7 @@ docs/            使用、硬件、协议、OLED、开发、FAQ、PoC 与额度�
 firmware/qmk-core-patches/  USB/VIA/OLED 等 QMK core patch 与设计稿
 ```
 
-文档入口：`docs/README.md`。
+文档入口：`docs/README.md`；需求基线：`docs/requirements.md`。
 
 ## 构建与验证
 

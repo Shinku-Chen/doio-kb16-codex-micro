@@ -14,3 +14,5 @@
 - 移除预编译固件二进制与 `firmware/SHA256SUMS.txt`；新增 `.gitignore`，固件由本地构建、不再入库。
 
 - 移除 Mapper；仓库只保留固件源码/构建/文档，不再包含 Windows 配置工具。
+
+- 新增 `docs/requirements.md`：汇总项目目标、功能/非功能需求、验收标准、非目标和里程碑。
