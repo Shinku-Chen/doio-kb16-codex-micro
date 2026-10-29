@@ -20,7 +20,7 @@ DOIO KB16-01 是 16 键 + 3 旋钮 + 128×32 单色 OLED 的有线 macropad。�
 1. 在 KB16-01 Rev2 上提供 Codex Micro 兼容的 USB 身份和原生控制。
 2. Codex 层（层 0）保持纯 Codex 原生控制，不被 VIA 改写。
 3. 层 1-3 作为纯普通层，允许通过 VIA 在线改键。
-4. 插电后先进入 VIA 模式；30 秒内收到 VIA 命令则保持 VIA，否则切到 Codex 模式；VIA 空闲 60 秒后切回 Codex。
+4. 插电后先进入 VIA 模式；30 秒内收到 VIA 命令则一直保持 VIA，直到断电；30 秒内没有 VIA 命令则切到 Codex。改完/刷完后断电重插。
 5. OLED 显示当前层号/层名和六个任务状态。
 6. 默认不引入额外 host 程序；额度显示作为默认关闭的可选能力。
 7. 仓库只保留可复现的固件源码和构建说明。
@@ -57,7 +57,6 @@ DOIO KB16-01 是 16 键 + 3 旋钮 + 128×32 单色 OLED 的有线 macropad。�
 | 层 1-3 | Number / Navigation / System，VIA 可编辑 |
 | 任务槽 | AG00-AG05 对应的 6 个 Codex 任务灯 |
 | 30s 窗口 | 插电后允许 VIA 连接的初始时间 |
-| 60s 空闲 | VIA 最后一次命令后的保持时间 |
 
 ## 5. 功能需求
 
@@ -85,9 +84,9 @@ DOIO KB16-01 是 16 键 + 3 旋钮 + 128×32 单色 OLED 的有线 macropad。�
 - 从上电开始计时 30 秒。
 - 30 秒内收到任意 VIA 命令（如协议版本查询）→ 认为 VIA 已连接，保持 VIA 模式。
 - 30 秒内没有收到 VIA 命令 → 切换 Codex 模式。
-- VIA 已连接后，连续 60 秒没有 VIA 命令 → 切换 Codex 模式。
+- VIA 已连接后一直保持 VIA，不自动切回 Codex。
 - 切换通过写模式标志 + `reset_keyboard()` 重新枚举；也可以后续改为软 USB 重枚举。
-- 切换前应确保 VIA 写入完成，避免丢写。
+- 断电前应确保 VIA 写入完成，避免丢写。
 
 ### FR-4 层职责
 
@@ -155,7 +154,7 @@ DOIO KB16-01 是 16 键 + 3 旋钮 + 128×32 单色 OLED 的有线 macropad。�
   └─ VIA 模式（D010:1601，FF60:0061，32B）
        ├─ 30s 内收到 VIA 命令 → 保持 VIA
        ├─ 30s 内无 VIA 命令 → Codex 模式
-       └─ VIA 空闲 60s → Codex 模式
+       └─ VIA 已连接 → 一直保持（断电重插后重新计时）
 
 Codex 模式（303A:8360，FF00:0001，Report 6，64B）
   ├─ 层 0：Codex 原生控制
@@ -164,7 +163,7 @@ Codex 模式（303A:8360，FF00:0001，Report 6，64B）
 
 - `codex_micro_raw_hid_receive()` 处理 Codex Channel 2/3。
 - `via_command_kb()` 负责 VIA 命令检测，并把 64B/Report ID 6 的 Codex 报文路由给 Codex。
-- `poc_mode.c` 管理 30s/60s 和 `.noinit` 标志。
+- `poc_mode.c` 管理 30s 窗口和 `.noinit` 标志。
 - `poc_usb.c` 提供描述符选择接口；真正切换由 QMK core patch 实现。
 - `poc_oled.c` 渲染层号/任务状态；`poc_quota.c` 可选。
 
@@ -172,7 +171,7 @@ Codex 模式（303A:8360，FF00:0001，Report 6，64B）
 
 1. 插电进入 VIA 模式；30 秒内打开 VIA 并连接，设备保持 VIA。
 2. 30 秒内没有 VIA 命令，设备自动切到 Codex，ChatGPT 识别为 Codex Micro。
-3. VIA 连接后 60 秒无命令，设备切到 Codex。
+3. VIA 连接后一直保持；断电重插后 30 秒内不连接 VIA，设备切到 Codex。
 4. VIA 能读写层 1-3；尝试写层 0 被拒绝，层 0 原生控制不变。
 5. Codex 模式下 AG/ACT/Mic/摇杆/左旋钮事件正常。
 6. 6 个任务灯按 `v.oai.thstatus` 显示；选中任务有呼吸效果。
@@ -193,7 +192,7 @@ Codex 模式（303A:8360，FF00:0001，Report 6，64B）
 
 - `.noinit` 是否被 STM32duino bootloader 保留；不保留则改用 RTC backup。
 - 切换 USB 身份后 ChatGPT 是否自动重新识别；可能需要重启 app。
-- VIA 写入过程中切换的丢写风险；需要空闲检测或延迟切换。
+- VIA 写入过程中拔电可能丢写；需要确保写入完成后再断电。
 - QMK dynamic keymap 与 Codex A/B 配置的 EEPROM 地址必须实测确认。
 - STM32F103 端点/描述符资源是否足够；顺序模式比同时双接口简单。
 - VIA 的 encoder/lighting 支持范围需要按 definition 实测。
@@ -205,7 +204,7 @@ Codex 模式（303A:8360，FF00:0001，Report 6，64B）
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | M1 | 仓库清理：移除预编译固件、Mapper，添加 `.gitignore` | 已完成 |
-| M2 | PoC 骨架：模式标志、30s/60s、VIA 命令检测、OLED 层号/任务状态 | 已完成（未编译验证） |
+| M2 | PoC 骨架：模式标志、30s 窗口、VIA 命令检测、OLED 层号/任务状态 | 已完成（未编译验证） |
 | M3 | USB 描述符切换 core patch + VIA_ENABLE | 待做 |
 | M4 | VIA layer offset + EEPROM 分区 | 待做 |
 | M5 | 实机编译/刷写/验收 | 待做 |
