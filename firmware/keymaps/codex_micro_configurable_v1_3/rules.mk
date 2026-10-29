@@ -6,6 +6,7 @@ SRC += oled_icons.c codex_micro_protocol.c kb16_config.c kb16_config_transport.c
 
 POC_MODE_SWITCH ?= no
 POC_OLED_STATUS ?= no
+POC_OLED_QUOTA ?= no
 
 ifeq ($(strip $(POC_MODE_SWITCH)), yes)
   SRC += poc_mode.c poc_usb.c poc_via.c
@@ -13,6 +14,11 @@ ifeq ($(strip $(POC_MODE_SWITCH)), yes)
 endif
 
 ifeq ($(strip $(POC_OLED_STATUS)), yes)
-  SRC += poc_quota.c poc_oled.c
+  SRC += poc_oled.c
   OPT_DEFS += -DPOC_OLED_STATUS
+endif
+
+ifeq ($(strip $(POC_OLED_QUOTA)), yes)
+  SRC += poc_quota.c
+  OPT_DEFS += -DPOC_OLED_QUOTA
 endif

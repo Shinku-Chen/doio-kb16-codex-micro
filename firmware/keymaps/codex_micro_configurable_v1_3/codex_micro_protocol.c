@@ -9,7 +9,7 @@
 #include "kb16_config_transport.h"
 #include "raw_hid.h"
 
-#ifdef POC_OLED_STATUS
+#ifdef POC_OLED_QUOTA
 #    include "poc_quota.h"
 #endif
 
@@ -429,7 +429,7 @@ static void handle_request(const char *json) {
     } else if (strcmp(method, "v.oai.thstatus") == 0) {
         update_thread_lighting(find_top_level_value(json, "params"));
         send_result(has_id ? id : NULL, "{\"ok\":true}");
-#ifdef POC_OLED_STATUS
+#ifdef POC_OLED_QUOTA
     } else if (strcmp(method, "v.oai.quota") == 0) {
         poc_quota_parse(find_top_level_value(json, "params"));
         send_result(has_id ? id : NULL, "{\"ok\":true}");

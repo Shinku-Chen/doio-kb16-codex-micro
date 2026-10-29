@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef POC_OLED_STATUS
+#ifdef POC_OLED_QUOTA
 
 static bool    quota_valid;
 static uint8_t quota_five_hour;

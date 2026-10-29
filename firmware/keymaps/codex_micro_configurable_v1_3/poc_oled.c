@@ -2,8 +2,11 @@
 
 #include "poc_config.h"
 #include "poc_oled.h"
-#include "poc_quota.h"
 #include "codex_micro_protocol.h"
+
+#ifdef POC_OLED_QUOTA
+#    include "poc_quota.h"
+#endif
 
 #include <stdio.h>
 
@@ -45,39 +48,39 @@ void poc_oled_task(void) {
     uint8_t layer = get_highest_layer(layer_state);
     oled_clear();
 
-    // Line 1: layer + 5-hour quota.
+    // Line 1: layer number/name. No host program needed.
     oled_set_cursor(0, 0);
-    uint8_t five = 0, weekly = 0;
-    char    credits[8] = {0};
-    bool    has_quota  = poc_quota_get(&five, &weekly, credits, sizeof(credits));
-    if (has_quota) {
-        snprintf(line, sizeof(line), "L%u %-5s 5H%3u%%", layer, layer_name(layer), five);
-    } else {
-        snprintf(line, sizeof(line), "L%u %-5s 5H --", layer, layer_name(layer));
-    }
+    snprintf(line, sizeof(line), "L%u %-5s", layer, layer_name(layer));
     oled_write(line, false);
 
-    // Line 2: six task slots, one letter each.
+    // Line 2: six task slots. Data comes from ChatGPT's v.oai.thstatus.
     oled_set_cursor(0, 1);
     snprintf(line, sizeof(line), "1%c 2%c 3%c 4%c 5%c 6%c", task_letter(codex_micro_slot_status(0)), task_letter(codex_micro_slot_status(1)), task_letter(codex_micro_slot_status(2)), task_letter(codex_micro_slot_status(3)), task_letter(codex_micro_slot_status(4)), task_letter(codex_micro_slot_status(5)));
     oled_write(line, false);
 
-    // Line 3: weekly quota + credits.
-    oled_set_cursor(0, 2);
-    if (has_quota) {
+#ifdef POC_OLED_QUOTA
+    uint8_t five = 0, weekly = 0;
+    char    credits[8] = {0};
+    if (poc_quota_get(&five, &weekly, credits, sizeof(credits))) {
+        oled_set_cursor(0, 2);
+        snprintf(line, sizeof(line), "5H%3u%% 7D%3u%%", five, weekly);
+        oled_write(line, false);
+        oled_set_cursor(0, 3);
         if (credits[0] != '\0') {
-            snprintf(line, sizeof(line), "7D%3u%% CR%s", weekly, credits);
+            snprintf(line, sizeof(line), "CR %s", credits);
         } else {
-            snprintf(line, sizeof(line), "7D%3u%%", weekly);
+            snprintf(line, sizeof(line), "CR --");
         }
-    } else {
-        snprintf(line, sizeof(line), "7D --");
+        oled_write(line, false);
+        return;
     }
-    oled_write(line, false);
+#endif
 
-    // Line 4: legend.
+    // Default: no quota. No extra host program required.
+    oled_set_cursor(0, 2);
+    oled_write("R run W wait U new", false);
     oled_set_cursor(0, 3);
-    oled_write("R run W wait U unread", false);
+    oled_write("E err . idle", false);
 }
 
 #endif

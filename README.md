@@ -18,4 +18,4 @@ DOIO KB16-01 Rev2 的 Codex Micro 兼容固件与工具工作副本。目标是�
 - [开发与构建](docs/development.md)
 - [FAQ](docs/faq.md)
 - [PoC：VIA/Codex 顺序模式](docs/poc.md)
-- [Codex 额度显示](docs/quota.md)
+- [Codex 额度方案（默认关闭）](docs/quota.md)

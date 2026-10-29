@@ -9,7 +9,7 @@
 - 层 0：纯 Codex 原生控制，固定
 - 层 1-3：Number / Navigation / System，VIA 在线改键
 
-OLED 显示：当前层号、六个任务状态、Codex 额度（可选）。
+OLED 显示：当前层号、六个任务状态。额度显示默认关闭（需要 host daemon，暂不做）。
 
 ## 状态机
 
@@ -32,10 +32,10 @@ OLED 显示：当前层号、六个任务状态、Codex 额度（可选）。
 - `poc_mode.c/h` — 模式标志、计时、强制切换
 - `poc_usb.c/h` — USB 描述符选择 stub
 - `poc_via.c/h` — VIA 命令检测、层数量/偏移
-- `poc_quota.c/h` — 额度 JSON 解析
+- `poc_quota.c/h` — 可选额度 JSON 解析，默认不编译
 - `poc_oled.c/h` — OLED 仪表盘
 - `keymap.c` — `keyboard_init_user` / `matrix_scan_user` / `oled_task_user` 挂钩
-- `rules.mk` — `POC_MODE_SWITCH` / `POC_OLED_STATUS`
+- `rules.mk` — `POC_MODE_SWITCH` / `POC_OLED_STATUS` / `POC_OLED_QUOTA`
 
 ## 启用
 
@@ -50,6 +50,8 @@ qmk compile -kb doio/kb16/rev2 -km codex_micro_configurable_v1_3 \
 - 应用 `firmware/qmk-core-patches/POC-usb-switch.md` 和 `POC-via-layers.md` 描述的 core patch
 - 使用原厂 KB16-01 VIA definition（VIA 模式身份 `0xD010:0x1601`）
 
+默认不启用任何需要额外 host 程序的功能。额度显示是可选开关，默认关闭。
+
 ## 已实现 / 未实现
 
 **已实现**
@@ -57,10 +59,10 @@ qmk compile -kb doio/kb16/rev2 -km codex_micro_configurable_v1_3 \
 - 模式标志、30s/60s 计时、VIA 命令检测骨架
 - Codex raw HID 处理拆成 `codex_micro_raw_hid_receive`，由 `via_command_kb` 路由；避免和 QMK `via.c` 的 `raw_hid_receive` 符号冲突
 - `.noinit` magic + `reset_keyboard()` 切换
-- OLED 层号、六个任务状态、额度占位
-- `v.oai.quota` JSON 解析（`p5`/`p7`/`cr`）
+- OLED 层号、六个任务状态（默认，不需要额外 host 程序）
+- 可选额度解析：`POC_OLED_QUOTA=yes` 时才编译 `poc_quota.c` 并接受 `v.oai.quota`
 
-OLED 的任务字母来自 `v.oai.thstatus` 的颜色/effect，不是任务标题；host 没发状态时显示 `.`。额度需要 host daemon，键盘本身不联网。
+OLED 的任务字母来自 `v.oai.thstatus` 的颜色/effect，不是任务标题；host 没发状态时显示 `.`。额度需要 host daemon，键盘本身不联网；默认不启用。
 
 **未实现**
 
@@ -68,7 +70,7 @@ OLED 的任务字母来自 `v.oai.thstatus` 的颜色/effect，不是任务标�
 - 打开 `VIA_ENABLE` / `DYNAMIC_KEYMAP_ENABLE`；描述符、层 offset 和 EEPROM 分区就绪后再开
 - VIA 的 layer offset 真正接入 `dynamic_keymap_*`（需要 core patch）
 - EEPROM 分区（Codex A/B 配置 vs QMK dynamic keymap）
-- host 侧额度 daemon（见 `quota.md`）
+- host 侧额度 daemon（默认不做；只有 `POC_OLED_QUOTA=yes` 时才需要，见 `quota.md`）
 - VIA 模式的按键/编码器写入验证
 
 ## 风险

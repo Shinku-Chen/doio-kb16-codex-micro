@@ -45,7 +45,8 @@ qmk compile -kb doio/kb16/rev2 -km codex_micro_configurable_v1_3 \
 ```
 
 - `POC_MODE_SWITCH=yes`：`poc_mode.c` / `poc_usb.c` / `poc_via.c`
-- `POC_OLED_STATUS=yes`：`poc_oled.c` / `poc_quota.c`
+- `POC_OLED_STATUS=yes`：`poc_oled.c`（层号 + 任务状态）
+- `POC_OLED_QUOTA=yes`：`poc_quota.c`（可选额度，默认关闭；需要 `POC_OLED_STATUS=yes` 和 host daemon）
 - 还需要 `VIA_ENABLE=yes`、`DYNAMIC_KEYMAP_ENABLE=yes`，以及 `firmware/qmk-core-patches/POC-usb-switch.md`、`POC-via-layers.md` 描述的 core patch。
 - 设计说明：`docs/poc.md`；额度：`docs/quota.md`。
 
