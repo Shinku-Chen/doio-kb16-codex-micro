@@ -2,15 +2,15 @@
 
 ## Mapper 是什么？
 
-Codex 固件配套的 Windows x64 键位/灯光配置器，类似 VIA 替代品。它通过 Raw HID Channel 3 读写配置，不刷固件、不改 OLED 图案、不改任务灯逻辑。
+Mapper 是上游的 Windows x64 键位/灯光配置器，不在本仓库。本仓库只负责生成固件；改键用 VIA（PoC）或外部上游 Mapper。
 
 ## 为什么刷完 VIA 不能用？
 
-Codex 固件关闭了 VIA，USB 身份也变成 `303A:8360`。改键/改灯要用 Mapper；普通层灯光和键位都在 Mapper 里。
+Codex 固件关闭了 VIA，USB 身份也变成 `303A:8360`。本仓库的 PoC 目标是把 VIA 加回来，只让 VIA 改层 1-3；层 0 保持 Codex 原生。
 
 ## 6 个任务灯能显示“当前任务”吗？
 
-现在 host 会把“当前选中/需要关注”的任务发成呼吸效果；其他五个是常亮状态色。要更明显（当前白色呼吸、其他变暗）需要改 `codex_micro_protocol.c` 重新编译，Mapper 改不了。
+现在 host 会把“当前选中/需要关注”的任务发成呼吸效果；其他五个是常亮状态色。要更明显（当前白色呼吸、其他变暗）需要改 `codex_micro_protocol.c` 重新编译；外部 Mapper 也不改这个逻辑。
 
 ## 摇杆只能上下左右吗？
 
@@ -34,7 +34,7 @@ KB16-01 是有线版；Codex 固件只支持有线。无线 KB16B-02（`FEED:606
 
 ## Mac 上怎么改键？
 
-Mapper 只有 Windows x64。可以在 Windows 虚拟机里跑，或者写一个跨平台的 Channel 3 配置工具；ChatGPT 的 Codex 原生设置（AG/摇杆/旋钮/麦克风）在 macOS 上可以直接用。
+本仓库不含 Mapper。可以用本仓库的 VIA PoC（macOS 浏览器打开 VIA 网页），或使用外部上游 Mapper（Windows x64）。ChatGPT 的 Codex 原生设置（AG/摇杆/旋钮/麦克风）在 macOS 上可以直接用。
 
 ## 官方 Codex Micro 和 KB16 怎么选？
 

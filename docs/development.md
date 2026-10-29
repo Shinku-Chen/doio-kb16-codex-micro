@@ -8,7 +8,6 @@
 
 ```
 firmware/        QMK 固件源码、keymap、qmk-core-patches
-mapper/          Windows WPF 配置工具源码
 docs/            本文档
 firmware/keymaps/codex_micro_configurable_v1_3/tools/  OLED 图标/校验脚本
 ```

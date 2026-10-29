@@ -35,7 +35,7 @@ length and up to 55 payload bytes. It supports hello, read, staged write,
 commit and restore-default operations. Bad versions, lengths, ordering, CRC,
 actions and commits while input is held are rejected.
 
-Mapper v1.3.5 extends Channel 3 without changing the protocol version or the
+The upstream Mapper (not included in this repository) extends Channel 3 without changing the protocol version or the
 340-byte key configuration. Four independent lighting operations read the
 current RGB Matrix state, preview a solid HSV color without EEPROM writes,
 commit a solid HSV color, or restore the complete pre-preview state without an

@@ -5,7 +5,6 @@
 - DOIO KB16-01 **Rev2**（APM32F103CBT6）。
 - macOS 或 Windows；刷写需要 `dfu-util` 或 QMK Toolbox。
 - ChatGPT/Codex 桌面版（macOS 14+ / Windows 10+）。
-- 可选：Windows x64 用于运行 Mapper。
 
 ## 刷入 Codex Micro 固件
 
@@ -14,7 +13,6 @@
 本仓库不存放预编译固件；推荐按 `development.md` 本地构建。如果只想用上游预编译版，可去上游 Release 下载：
 
 - 固件：`doio_kb16_rev2_codex_micro_configurable_v1_3_5_status_colors.bin`
-- 可选 Mapper：`Doio.Kb16.Mapper-v1.3.5-preview-complete.zip`
 
 上游 v1.3.5 固件 SHA-256（仅用于上游预编译版）：
 
@@ -52,16 +50,16 @@ dfu-util -a 2 -d 1EAF:0003 -D doio_kb16_rev2_codex_micro_configurable_v1_3_5_sta
 - **Brightness**：所有设备灯光亮度。
 - **Connection / Battery**：连接与电量；Reset keyboard layout 恢复默认。
 
-> 这些是 Codex 原生层设置。KB16 的 4 层键位/普通层灯光用 Mapper 设置；6 层/AppSense 是官方 Codex Micro + Work Louder Input 的能力，KB16 不支持。
+> 这些是 Codex 原生层设置。本仓库只生成固件，不包含 Mapper；4 层键位/普通层灯光用 VIA（PoC）或外部上游 Mapper 设置。6 层/AppSense 是官方 Codex Micro + Work Louder Input 的能力，KB16 不支持。
 
-## Mapper（Windows x64）
+## 改键/改灯
 
-Mapper 是 Codex 固件配套的键位/灯光配置器，类似 VIA 替代品：
+本仓库只负责生成固件，不包含 Mapper。需要图形化改键/改灯时：
 
-- 支持 4 层键位、普通层 HSV 灯光、Codex 任务灯颜色。
-- 通过 Raw HID Channel 3 读写，写入前回读校验。
-- 不刷固件、不改 OLED 图案、不改“当前任务”逻辑。
-- 需要 v1.3 固件；Windows x64 便携程序，解压后运行 `Doio.Kb16.Mapper.exe`。
+- 使用本仓库 PoC 目标中的 VIA 模式（层 1-3）；
+- 或使用上游的 Windows Mapper（外部工具，不在本仓库）。
+
+Codex 层（层 0）保持原生控制，不通过 VIA/Mapper 改键。
 
 ## 普通层
 
@@ -92,5 +90,5 @@ Mapper 是 Codex 固件配套的键位/灯光配置器，类似 VIA 替代品：
 ## macOS 注意
 
 - ChatGPT/Codex 桌面版支持 macOS，并内置 Codex Micro 识别。
-- Mapper 只有 Windows x64；Mac 上改键/改灯需要 Windows 虚拟机或自定义工具。
+- 本仓库不含 Mapper；Mac 上可以用 VIA PoC（浏览器）或外部 Windows Mapper。
 - 刷写可用 `dfu-util`；进入 Bootloader 后按上面的命令执行。

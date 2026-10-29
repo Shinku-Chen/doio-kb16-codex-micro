@@ -10,11 +10,10 @@ DOIO KB16-01 Rev2（APM32F103CBT6，128 KB Flash）的 Codex Micro 兼容固件�
 
 ## 目录结构
 
-已导入上游固件与 Mapper 源码；PoC 骨架位于 `firmware/keymaps/codex_micro_configurable_v1_3/poc_*`。目录如下：
+本仓库只负责生成固件，不包含 Mapper 或预编译产物；PoC 骨架位于 `firmware/keymaps/codex_micro_configurable_v1_3/poc_*`。目录如下：
 
 ```
 firmware/        QMK 固件与 keymap（codex_micro_configurable_v1_3）
-mapper/          Windows WPF 键位/灯光配置工具（可选）
 docs/            使用、硬件、协议、OLED、开发、FAQ、PoC 与额度文档
 firmware/qmk-core-patches/  USB/VIA/OLED 等 QMK core patch 与设计稿
 ```

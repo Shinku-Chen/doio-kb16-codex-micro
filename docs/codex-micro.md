@@ -17,7 +17,7 @@
 | 原生键 | AG00-05、ACT06-12、Mic | AG00-05、ACT06-09/12、Mic；ACT11 空槽 |
 | 无线 | 蓝牙 + USB-C | 仅有线 |
 | 层数 | 最多 6 层 | 4 个固定层 |
-| 配置 | ChatGPT 设置 + Work Louder Input | ChatGPT 设置 + Windows Mapper；Input 不可用 |
+| 配置 | ChatGPT 设置 + Work Louder Input | ChatGPT 设置 + VIA（PoC）；外部 Mapper 不在本仓库 |
 | 官方支持 | 官方固件/更新 | 非官方、逆向协议，可能随 ChatGPT 更新失效 |
 
 ## 原生控制
@@ -56,7 +56,7 @@ KB16 没有触摸传感器；Codex 固件用中旋钮按下/System 层动作切 
 **已经实现**
 
 - 6 个 agent 键、动作键、Mic、左旋钮、四方向摇杆、6 个任务灯
-- 4 个固定层、OLED 层图标、RGB 状态色、Mapper 改键/灯光
+- 4 个固定层、OLED 层图标、RGB 状态色；VIA 改键/灯光为 PoC 目标
 
 **小改固件**
 

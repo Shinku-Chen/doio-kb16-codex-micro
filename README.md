@@ -1,6 +1,6 @@
 # DOIO KB16 Codex Micro
 
-DOIO KB16-01 Rev2 的 Codex Micro 兼容固件与工具工作副本。目标是把 16 键 + 3 旋钮 + 128×32 OLED 的 KB16 作为 Codex Micro 控制器使用。
+DOIO KB16-01 Rev2 的 Codex Micro 兼容固件生成仓库。目标是把 16 键 + 3 旋钮 + 128×32 OLED 的 KB16 作为 Codex Micro 控制器使用；仓库只保留固件源码/构建/文档，不包含 Mapper 或预编译固件。
 
 - 文档入口：[`docs/README.md`](docs/README.md)
 - 硬件要求：DOIO KB16-01 **Rev2**（APM32F103CBT6，128 KB Flash）

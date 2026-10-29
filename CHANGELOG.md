@@ -12,3 +12,5 @@
 - 额度显示默认关闭：默认 PoC 只显示层号和任务状态，不启用任何需要额外 host 程序的功能；`POC_OLED_QUOTA` 作为可选开关保留。
 
 - 移除预编译固件二进制与 `firmware/SHA256SUMS.txt`；新增 `.gitignore`，固件由本地构建、不再入库。
+
+- 移除 Mapper；仓库只保留固件源码/构建/文档，不再包含 Windows 配置工具。
