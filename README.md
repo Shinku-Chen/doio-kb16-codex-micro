@@ -4,9 +4,11 @@ DOIO KB16-01 Rev2 的 Codex Micro 兼容固件与工具工作副本。目标是�
 
 - 文档入口：[`docs/README.md`](docs/README.md)
 - 硬件要求：DOIO KB16-01 **Rev2**（APM32F103CBT6，128 KB Flash）
-- 当前状态：文档初始化完成；固件/工具源码待导入
+- 当前状态：源码已导入；PoC 骨架已添加；仓库只保留源码，固件由本地构建
 
 > 仅支持 KB16-01 Rev2。Rev1（ATmega32U4）不要刷本项目的 STM32 固件。
+>
+> 本仓库不存放预编译 `.bin` / `.hex` / `.uf2`；构建产物由本地 `qmk compile` 生成，已被 `.gitignore` 忽略。
 
 ## 文档
 

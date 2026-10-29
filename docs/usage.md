@@ -11,12 +11,12 @@
 
 ### 1. 下载与校验
 
-从上游 Release 下载：
+本仓库不存放预编译固件；推荐按 `development.md` 本地构建。如果只想用上游预编译版，可去上游 Release 下载：
 
 - 固件：`doio_kb16_rev2_codex_micro_configurable_v1_3_5_status_colors.bin`
 - 可选 Mapper：`Doio.Kb16.Mapper-v1.3.5-preview-complete.zip`
 
-v1.3.5 固件 SHA-256：
+上游 v1.3.5 固件 SHA-256（仅用于上游预编译版）：
 
 ```text
 B21691424B22950562247E8B36D6307A0E0CCA481221C22592D9EE8ADBA45D0F

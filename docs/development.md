@@ -2,15 +2,15 @@
 
 ## 当前状态
 
-仓库刚完成文档初始化，固件/工具源码尚未导入。以下流程基于上游 `hcyniubi/doio-kb16-codex-micro`，源码导入后按实际路径调整。
+源码已导入；仓库只保留源码和文档，预编译固件（`.bin` / `.hex` / `.uf2`）不入库。以下流程在本地 QMK checkout 中构建。
 
-## 计划目录
+## 目录
 
 ```
-firmware/        QMK 固件与 keymap
-mapper/          Windows WPF 配置工具
+firmware/        QMK 固件源码、keymap、qmk-core-patches
+mapper/          Windows WPF 配置工具源码
 docs/            本文档
-tools/           OLED 图标生成、校验、刷写脚本
+firmware/keymaps/codex_micro_configurable_v1_3/tools/  OLED 图标/校验脚本
 ```
 
 ## 环境
@@ -20,12 +20,11 @@ tools/           OLED 图标生成、校验、刷写脚本
 - Python 3 + Pillow（生成 OLED 图标）
 - `dfu-util`（刷写）
 
-## 导入上游源码
+## 准备 QMK
 
-1. 克隆上游 `hcyniubi/doio-kb16-codex-micro`。
-2. 把 `firmware/keymaps/codex_micro_configurable_v1_3/` 复制到 QMK 的 `keyboards/doio/kb16/rev2/keymaps/`。
-3. 按上游 `firmware/qmk-core-patches/` 应用 4 个 core patch（USB 描述符、Raw HID、DMA 等）。
-4. 保留上游 `LICENSE` 和版权声明。
+1. 把本仓库 `firmware/keymaps/codex_micro_configurable_v1_3/` 复制到 QMK 的 `keyboards/doio/kb16/rev2/keymaps/`。
+2. 按 `firmware/qmk-core-patches/` 应用 4 个 core patch（USB 描述符、Raw HID、DMA 等）。
+3. 保留 `LICENSE` 和版权声明。
 
 ## 构建
 
@@ -34,7 +33,7 @@ qmk compile -kb doio/kb16/rev2 -km codex_micro_configurable_v1_3
 qmk lint -kb doio/kb16/rev2 -km codex_micro_configurable_v1_3
 ```
 
-生成 `doio_kb16_rev2_codex_micro_configurable_v1_3.bin`。
+生成 `doio_kb16_rev2_codex_micro_configurable_v1_3.bin`。这是本地构建产物，不要提交到仓库。
 
 ## 静态校验
 

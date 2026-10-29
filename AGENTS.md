@@ -23,7 +23,7 @@ firmware/qmk-core-patches/  USB/VIA/OLED 等 QMK core patch 与设计稿
 
 ## 构建与验证
 
-> 源码已导入；需要先完成 QMK setup，并按 `firmware/qmk-core-patches/` 应用 core patch。
+> 源码已导入；需要先完成 QMK setup，并按 `firmware/qmk-core-patches/` 应用 core patch。仓库不提交 `.bin` / `.hex` / `.uf2` 等构建产物。
 
 ```bash
 # QMK 固件（需先安装 QMK 与 ARM 工具链）

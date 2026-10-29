@@ -1,0 +1,14 @@
+# Build outputs / generated firmware
+*.bin
+*.hex
+*.uf2
+*.elf
+*.map
+*.o
+*.d
+.build/
+firmware/releases/
+
+# Local build artifacts
+**/bin/
+**/obj/
