@@ -18,3 +18,5 @@
 - 新增 `docs/requirements.md`：汇总项目目标、功能/非功能需求、验收标准、非目标和里程碑。
 
 - 新增 `docs/keymap.md`：Codex Micro 与 KB16 层 0 的键位对应图、映射表和逻辑关系图。
+
+- 新增 `docs/full-implementation.md`：官方 ESP32-S3 固件分析、KB16 可行子集、fs/keymap/RPC 完整实现路线。
