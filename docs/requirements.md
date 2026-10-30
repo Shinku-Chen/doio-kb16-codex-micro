@@ -1,6 +1,6 @@
 # DOIO KB16 Codex Micro 固件需求文档
 
-> 当前开发版 `0.6.0-qmk`：第一页 L0 为 Codex，L1–L3 普通 VIA；五处直接自定义，不再保留任何固定长按退出。10 秒 VIA 窗口及其他功能不变。当前实机仍为 0.5.0，本版未发布或刷入，刷写使用对应提交的流水线 Artifact；[完整规则](codex-via-keys.md)。
+> 当前版本 `0.6.0-qmk`：第一页 L0 为 Codex，L1–L3 普通 VIA；五处直接自定义，不再保留任何固定长按退出。10 秒 VIA 窗口及其他功能不变。已刷入对应提交的流水线 Artifact，版本应答确认 0.6.0-qmk、当前 Codex L0，以 v0.6.0-qmk Release 分发；[完整规则](codex-via-keys.md)。
 > 硬件：DOIO KB16-01 Rev2，APM32F103CBT6，128 KB Flash / 20 KB RAM。
 > 仓库只负责生成固件：QMK + VIA，不包含 Mapper；Git 不提交预编译产物，固件通过 GitHub Release 分发。
 
@@ -93,7 +93,7 @@ L0 按 [键位对应](keymap.md) 实现：
 - 固定 QMK commit `f5db962110615fd263c3ebf9f0402e7c2b08fbe4`，安装脚本拒绝其他基线。
 - 构建目标 `doio/kb16/rev2:codex_micro_via_v1`，使用完整 Arm GNU Toolchain。
 - C/Python 检查覆盖实际生产函数、四层边界、五处动态/原生固定路由、旧数据迁移、存储地址、RGB/OLED、USB/VIA、灯光规则及两份 SVG 的实际映射。
-- 新版离线检查和本地 QMK 构建结果记录于 `development.md`。实机仍是 0.5.0，新层序/临时切层尚待实体验收，旧版本结果不得外推。
+- 新版离线检查和本地 QMK 构建结果记录于 `development.md`。实机版本已确认 0.6.0-qmk，当前 Codex L0；用户随后整体反馈正常，但逐项精测与一小时休眠仍不外推。
 - 上一版 `0.2.0-qmk` RPC 和八组灯光实机通过是历史结果，不代表当前四层、OLED 或录音常亮已验收。
 - 固件协议来自兼容性实现，不是稳定官方承诺；宿主升级后应重测。
 

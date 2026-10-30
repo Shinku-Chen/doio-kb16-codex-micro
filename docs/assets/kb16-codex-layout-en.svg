@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="480" height="650" viewBox="0 0 480 650" role="img" aria-labelledby="title description">
   <title id="title">KB16 · Codex key map</title>
-  <desc id="description">0.6.0 development L0: six AG and seven ACT controls remain native. All five spare positions execute first-page VIA mappings directly, without a fixed exit hold. Configure MO(1) for momentary ordinary L1 and TO(0) to return. A/B turns are X/Y, C is the encoder. Colors are not live LED colors.</desc>
+  <desc id="description">0.6.0 L0: six AG and seven ACT controls remain native. All five spare positions execute first-page VIA mappings directly, without a fixed exit hold. Configure MO(1) for momentary ordinary L1 and TO(0) to return. A/B turns are X/Y, C is the encoder. Colors are not live LED colors.</desc>
   <style>
     text { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #17243c; }
     .mono { font-family: Menlo, Consolas, monospace; }
@@ -10,7 +10,7 @@
   </style>
   <rect width="480" height="650" rx="18" fill="#ffffff"/>
   <text x="24" y="35" font-size="25" class="strong">KB16 · Codex key map</text>
-  <text x="24" y="59" font-size="14" class="muted">0.6.0 dev · L0 / page 1 · Five VIA positions</text>
+  <text x="24" y="59" font-size="14" class="muted">0.6.0 · L0 / page 1 · Five VIA positions</text>
   <rect x="12" y="76" width="456" height="302" rx="18" fill="#f2f5fa" stroke="#d4dde9"/>
   <g data-control="key" data-matrix="0,0" data-keycode="KC_NO" data-led="0" data-via-slot="1">
     <title>VIA1: page 1 custom key, unassigned by default</title>

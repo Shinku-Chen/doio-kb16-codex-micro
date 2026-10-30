@@ -1,6 +1,6 @@
 # QMK + VIA 双模式
 
-当前开发源码 `0.6.0-qmk`：Codex 调整到第一页 L0，L1–L3 普通 VIA；取消固定长按退出，切层完全由用户配置。设备仍为 0.5.0，本版未刷入。
+当前源码 `0.6.0-qmk`：Codex 调整到第一页 L0，L1–L3 普通 VIA；取消固定长按退出，切层完全由用户配置。流水线版已刷入，版本应答为 0.6.0-qmk，当前 Codex L0；用户随后整体反馈正常，未逐项精测。
 
 ## 四层模型
 
@@ -54,4 +54,4 @@ qmk compile -kb doio/kb16/rev2 -km codex_micro_via_v1
 
 固定 QMK `f5db962110615fd263c3ebf9f0402e7c2b08fbe4`。core patch 包括 USB 双描述符、报告边界/控制队列、VIA 可见层数、WS2812 PWM DMA，以及仅当前双模式启用的普通层透明继承隔离；未改 QMK layer_on/off/invert/xor 的标准语义。
 
-本地构建只作开发验证，正式镜像由 GitHub Actions 生成；本次按用户要求在验证后提交推送，不创建 Release、不刷机。历史 CI/实机记录、官方回退镜像和哈希见 [开发](development.md)，拆机使用内部 RESET 的方法见 [使用与刷写](usage.md)。
+本地构建只作开发验证，正式镜像由 GitHub Actions 生成；本次验证后提交推送，随后按用户另行要求刷入对应流水线 Artifact 并核验版本；用户确认正常后另行授权以 v0.6.0-qmk 发布。历史 CI/实机记录、官方回退镜像和哈希见 [开发](development.md)，拆机使用内部 RESET 的方法见 [使用与刷写](usage.md)。

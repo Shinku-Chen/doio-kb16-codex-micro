@@ -8,10 +8,10 @@ Turn a **DOIO KB16-01 Rev2** into a Codex Micro-compatible controller while keep
 
 ## Download and version
 
-> **Development `0.6.0-qmk`: Codex is now L0, the first VIA page; L1–L3 are ordinary layers. All five custom positions execute VIA directly, with no fixed long-hold exit.** Set bottom-left to `MO(1)` to hold ordinary L1 and release back to Codex; use `TO(0)` to return from ordinary layers. Existing pages and layer-action targets migrate together. Local checks passed. Flash only the matching main workflow Artifact (not a Release or locally uploaded image). This version has not been flashed; hardware still runs 0.5.0. Export a backup first. See the [five-key guide](docs/codex-via-keys.md).
+> **Current version `0.6.0-qmk`: Codex is now L0, the first VIA page; L1–L3 are ordinary layers. All five custom positions execute VIA directly, with no fixed long-hold exit.** Set bottom-left to `MO(1)` to hold ordinary L1 and release back to Codex; use `TO(0)` to return from ordinary layers. Existing pages and layer-action targets migrate together. 73 firmware groups, 13 bundle tests and compilation passed. Use the pipeline-built Release assets below, not locally uploaded firmware. The CI build has now been flashed; `sys.version` / `device.status` confirm `0.6.0-qmk` and current Codex L0. The user subsequently reported normal operation; this is overall feedback, not a new one-hour sleep test or individual optical/timing measurements. Export a backup first. See the [five-key guide](docs/codex-via-keys.md).
 
-- **[v0.4.9-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.9-qmk)** includes `.bin`, `.hex`, the VIA definition, `BUILD-INFO.json` and `SHA256SUMS`.
-- Fixes OLED blackout when all task lights are cleared: **independent screen sleep, a persistent Logo+CODEX when no task lights are assigned, and a full one-second entry logo**. RGB behavior, EEPROM, the 10-second VIA window and one-second exit are unchanged. The CI-built `0.4.9-qmk` has been flashed; version replies and the entry logo passed hardware checks. The user skipped the one-hour idle/key-wake test, so it remains unverified on hardware.
+- **[v0.6.0-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.6.0-qmk)** includes `.bin`, `.hex`, the VIA definition, `BUILD-INFO.json` and `SHA256SUMS`.
+- Historical `0.4.9-qmk` fixed OLED blackout when all task lights are cleared: **independent screen sleep, a persistent Logo+CODEX when no task lights are assigned, and a full one-second entry logo**. RGB behavior, EEPROM, the 10-second VIA window and one-second exit are unchanged. The CI-built `0.4.9-qmk` has been flashed; version replies and the entry logo passed hardware checks. The user skipped the one-hour idle/key-wake test, so it remains unverified on hardware.
 - The pipeline-built `0.4.8-qmk` has been flashed and hardware-checked: version replies, the approximately 10-second cold-start display, no switch on a short tap, exit to L0 after about a 1-second hold, and return to Codex all passed. Host monitoring also captured the four-layer route; hand timing is not precision measurement. See [development notes](docs/development.md).
 - Git contains source, definitions and documentation, not firmware binaries. Binaries are Release assets. Back up before upgrading: EEPROM compatibility with arbitrary older firmware is not guaranteed.
 - **Official assets are built from tagged source and published by [GitHub Actions](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/workflows/firmware.yml), not uploaded from a local build.** `BUILD-INFO.json` records source/QMK/compiler versions, workflow URL and asset hashes. Use the attached `SHA256SUMS`; the 0.4.8 assets have been [rebuilt and replaced by CI](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41041000839) without moving the tag.
@@ -27,12 +27,12 @@ Turn a **DOIO KB16-01 Rev2** into a Codex Micro-compatible controller while keep
 ```bash
 # Run from the downloaded firmware directory, then press internal RESET.
 dfu-util -w -a 2 -d 1EAF:0003 \
-  -D doio_kb16_rev2_codex_micro_v0.4.9-qmk.bin
+  -D doio_kb16_rev2_codex_micro_v0.6.0-qmk.bin
 ```
 
 4. Do not disconnect or reset during download. If the board only restarts, ensure the waiting command is still running before retrying internal RESET. Stop on `UNKNOWN` / `LIBUSB_ERROR_PIPE`, power-cycle and re-enter DFU; never mass-erase or unprotect.
 5. After download, verify re-enumeration and the running version; **do not blindly reflash because the reset stage returns `74`**. See this version's `BUILD-INFO.json` for the BIN size, which includes a 16-byte DFU suffix not transferred as application data. Do not pass Intel HEX to the raw BIN command.
-6. **Cold-start acceptance uses no reset button:** unplug for 5 seconds, reconnect normally, press no keys and keep VIA closed. Expect `VIA WAITTING` for about 10 seconds, then Codex. The downloadable 0.4.9 uses old L3/bottom-left exit behavior; only development 0.6.0 uses Codex L0 and user-configured switching.
+6. **Cold-start acceptance uses no reset button:** unplug for 5 seconds, reconnect normally, press no keys and keep VIA closed. Expect `VIA WAITTING` for about 10 seconds, then Codex. This version uses Codex L0 and user-configured switching such as `MO(1)` / `TO(0)`, without a fixed exit hold. Do not use the old 0.4.9 L3/hold instructions.
 
 See [flashing and recovery](docs/usage.md). Screen text and manual hold timing require human observation; USB timing is supporting evidence only.
 
@@ -77,7 +77,7 @@ Power on → VIA WAITTING (ordinary L1)
 
 ## Codex key mapping
 
-Viewed from the front; row/column numbers start at 1. This is **development 0.6.0 L0 / first page**. VIA1–5 mark custom positions, not layers; released 0.4.9 does not support them. Ordinary layers follow VIA.
+Viewed from the front; row/column numbers start at 1. This is **0.6.0 L0 / first page**. VIA1–5 mark custom positions, not layers; released 0.4.9 does not support them. Ordinary layers follow VIA.
 
 ![KB16 Codex L0 key map and three knobs](docs/assets/kb16-codex-layout-en.svg)
 
@@ -133,7 +133,7 @@ These images are generated from **actual 128×32 test framebuffers rendered by t
 
 **Codex:** A terminal logo + `CODEX` appears for about 1 second from the first visible frame on entry. Assigned task lights then show six AG light-derived estimates; with no assigned tasks, the logo stays. Clearing all tasks returns to the logo rather than blanking OLED. Brightness zero does not release a task; only unassigned or explicitly `off` slots count as absent.
 
-In development 0.6.0, ordinary HID output from the five custom positions temporarily replaces the logo/tasks with actual keys, chords, media or mouse labels. The label stays while held and restores the page about 900 ms after release. Macros show their latest output; native AG/ACT events remain unchanged. See the [full behavior](docs/codex-via-keys.md).
+In 0.6.0, ordinary HID output from the five custom positions temporarily replaces the logo/tasks with actual keys, chords, media or mouse labels. The label stays while held and restores the page about 900 ms after release. Macros show their latest output; native AG/ACT events remain unchanged. See the [full behavior](docs/codex-via-keys.md).
 
 ![Codex entry](docs/assets/oled-codex-logo.svg)
 ![Six task-light estimates](docs/assets/oled-codex-tasks.svg)

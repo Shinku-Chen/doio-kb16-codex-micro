@@ -8,10 +8,10 @@
 
 ## 固件下载与当前版本
 
-> **开发版 `0.6.0-qmk`：第一页 L0 改为 Codex，L1–L3 为普通 VIA 层。取消固定长按退出，五个自定义位置全部直接执行 VIA 配置。** 建议 L0 左下设 `MO(1)`：按住进入普通 L1，松开回 Codex；普通层可配 `TO(0)` 返回。旧四页配置自动调整顺序并转换层动作目标，升级前仍应导出备份。本地验证已通过；正式刷写请使用本提交对应的 main 流水线 Artifact（非 Release），不用本机镜像。本版未刷入，设备仍运行 0.5.0，历史验收不代表本版已实测。详见 [五处改键说明](docs/codex-via-keys.md)。
+> **当前版本 `0.6.0-qmk`：第一页 L0 改为 Codex，L1–L3 为普通 VIA 层。取消固定长按退出，五个自定义位置全部直接执行 VIA 配置。** 建议 L0 左下设 `MO(1)`：按住进入普通 L1，松开回 Codex；普通层可配 `TO(0)` 返回。旧四页配置自动调整顺序并转换层动作目标，升级前仍应导出备份。73 组固件检查、13 项打包测试及编译通过；正式刷写使用下方 Release 的流水线附件，不用本机镜像。流水线版已刷入，`sys.version` / `device.status` 确认 `0.6.0-qmk` 与当前 Codex L0；用户随后反馈“正常的”；这是整体使用反馈，不扩大为一小时休眠、光度或逐项精测。详见 [五处改键说明](docs/codex-via-keys.md)。
 
-- **[v0.4.9-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.9-qmk)**：固件 `.bin` / `.hex`、VIA 定义、`BUILD-INFO.json` 和 `SHA256SUMS`。
-- 本版修复任务灯全灭导致 OLED 黑屏：**屏幕独立息屏，无任务灯分配时保留 Logo+CODEX，进入 Codex 先展示完整 1 秒 Logo**。背光、键位存储、10 秒 VIA 窗口及 1 秒退出不变。`0.4.9-qmk` 流水线固件已刷入，版本和 Codex 入层 Logo 已实机确认；一小时息屏及按键唤醒按用户选择跳过，尚未实测。
+- **[v0.6.0-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.6.0-qmk)**：固件 `.bin` / `.hex`、VIA 定义、`BUILD-INFO.json` 和 `SHA256SUMS`。
+- 历史 `0.4.9-qmk` 修复任务灯全灭导致 OLED 黑屏：**屏幕独立息屏，无任务灯分配时保留 Logo+CODEX，进入 Codex 先展示完整 1 秒 Logo**。背光、键位存储、10 秒 VIA 窗口及 1 秒退出不变。`0.4.9-qmk` 流水线固件已刷入，版本和 Codex 入层 Logo 已实机确认；一小时息屏及按键唤醒按用户选择跳过，尚未实测。
 - `0.4.8-qmk` 流水线固件已刷入，版本应答及实机验收通过：正常插电约 10 秒等待页、短按不切层、长按约 1 秒回 L0、返回 Codex 均正常；主机同时捕获四层切换，不把手按时长当作仪器精测。详见 [开发文档](docs/development.md)。
 - Git 仓库只保存源码、定义和文档；编译产物只放 Release。升级前仍需备份，不保证任意旧固件的 EEPROM 都兼容。
 - **正式固件由 [GitHub Actions](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/workflows/firmware.yml) 从标签源码生成和发布，不使用本机编译附件。** `BUILD-INFO.json` 记录源码提交、QMK/编译器版本、流水线链接及资产摘要，最终校验和见 `SHA256SUMS`；0.4.8 已经 [流水线重建并替换附件](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41041000839)，原标签保持不动。
@@ -27,12 +27,12 @@
 ```bash
 # 在固件文件所在目录执行；命令先等待设备，再按内部 RESET
 dfu-util -w -a 2 -d 1EAF:0003 \
-  -D doio_kb16_rev2_codex_micro_v0.4.9-qmk.bin
+  -D doio_kb16_rev2_codex_micro_v0.6.0-qmk.bin
 ```
 
 4. 下载期间不要拔线或再按复位。若只重启、没捕获 DFU，先确认等待命令仍在，再重新尝试内部 RESET；出现 `UNKNOWN` / `LIBUSB_ERROR_PIPE` 则停止，断电重新进入，不做全片擦除或解保护。
 5. 下载完成后核验重新枚举及版本，**不要仅因复位阶段返回 `74` 就重复刷写**。BIN 大小以本版 `BUILD-INFO.json` 为准，其中包含 16 字节 DFU suffix，下载主体不含 suffix。HEX 不是原始 BIN，不能传给上述命令。
-6. **验证正常开机时不按任何复位键**：拔 USB 等 5 秒，正常插回，不按内部 RESET 或其他键，不开 VIA。应显示 `VIA WAITTING` 约 10 秒，随后进入 Codex。注意下载的 0.4.9 是旧 L3/左下长按退出模型；开发版 0.6.0 才是 Codex L0、自配层切换，不能混用说明。
+6. **验证正常开机时不按任何复位键**：拔 USB 等 5 秒，正常插回，不按内部 RESET 或其他键，不开 VIA。应显示 `VIA WAITTING` 约 10 秒，随后进入 Codex。本版进入 Codex L0，自行配置 `MO(1)` / `TO(0)` 等层切换，没有固定长按退出；不要混用旧 0.4.9 的 L3/长按说明。
 
 首次刷写与回退的完整步骤、识别失败处理见 [使用与刷写](docs/usage.md)。屏幕文字和手按时长需要实机目视确认，USB 枚举计时只是辅助证据。
 
@@ -79,7 +79,7 @@ dfu-util -w -a 2 -d 1EAF:0003 \
 
 ## Codex 键位对应表
 
-面向键盘，R/C 从 1 开始；描述 **0.6.0 开发版 L0 / 第一页**，普通层以 VIA 为准。VIA1–5 是可改位置标记，不是层号；已发布 0.4.9 尚不支持这五处。
+面向键盘，R/C 从 1 开始；描述 **0.6.0 L0 / 第一页**，普通层以 VIA 为准。VIA1–5 是可改位置标记，不是层号；已发布 0.4.9 尚不支持这五处。
 
 ![KB16 Codex L0 键位与三个旋钮](docs/assets/kb16-codex-layout-zh.svg)
 
@@ -134,7 +134,7 @@ R4     VIA5     ACT10    ACT11    ACT12
 
 **进入 Codex：** 从首个可显示帧起展示终端 Logo + `CODEX` 约 1 秒；有任务灯分配时随后显示六个 AG 灯的状态估计，无任务灯分配时持续显示 Logo。任务结束并清除全部任务灯后回到 Logo，不再因 RGB 全灭而关屏。亮度 0 不等于任务释放，只有未分配或明确 `off` 才算无任务。
 
-开发版五处自定义发出普通 HID 时，实际键名/组合/媒体/鼠标输出临时覆盖 Logo/任务页，按住保留、松开约 900 ms 恢复；宏显示最近输出。原生 AG/ACT 不产生普通键提示。见 [完整规则](docs/codex-via-keys.md)。
+本版五处自定义发出普通 HID 时，实际键名/组合/媒体/鼠标输出临时覆盖 Logo/任务页，按住保留、松开约 900 ms 恢复；宏显示最近输出。原生 AG/ACT 不产生普通键提示。见 [完整规则](docs/codex-via-keys.md)。
 
 ![Codex 进入画面](docs/assets/oled-codex-logo.svg)
 ![六个 AG 的任务状态估计](docs/assets/oled-codex-tasks.svg)

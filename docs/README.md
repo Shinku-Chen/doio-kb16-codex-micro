@@ -2,7 +2,7 @@
 
 本仓库是 DOIO KB16-01 Rev2 的 Codex Micro 兼容固件与工具的工作副本。目标是把 16 键 + 3 旋钮 + 128×32 OLED 的 KB16 作为 Codex Micro 控制器使用。
 
-> 当前开发版 `0.6.0-qmk`：Codex 位于第一页 L0，普通 VIA 为 L1–L3；五处直接自定义，取消固定长按退出，自己设置 MO/TO 切层。旧配置与层动作目标一次迁移，先备份。73 组离线检查、13 项打包测试及本地编译通过，本版尚未刷入，设备仍是 0.5.0；刷写使用对应提交的 main 流水线 Artifact。详见 [五处改键](codex-via-keys.md)、[开发](development.md)。正式镜像由流水线生成，刷机需拆外壳按内部 RESET，见 [使用](usage.md)。展示见 [中文 README](../README.md) / [English README](../README.en.md)。
+> 当前版本 `0.6.0-qmk`：Codex 位于第一页 L0，普通 VIA 为 L1–L3；五处直接自定义，取消固定长按退出，自己设置 MO/TO 切层。旧配置与层动作目标一次迁移，先备份。73 组离线检查、13 项打包测试及本地编译通过，对应提交的 main 流水线 Artifact 已刷入，版本应答确认 0.6.0-qmk、当前 Codex L0；用户随后整体反馈“正常的”，未扩大为一小时休眠/逐项精测。详见 [五处改键](codex-via-keys.md)、[开发](development.md)。正式镜像由流水线生成，刷机需拆外壳按内部 RESET，见 [使用](usage.md)。展示见 [中文 README](../README.md) / [English README](../README.en.md)。
 
 ## 快速开始
 

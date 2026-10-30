@@ -22,7 +22,7 @@ VIA（启动窗口） ── VIA Raw ──> KB16 EEPROM ──> L1–L3 普通�
 
 Raw HID 中断 OUT 按 USB 报告边界分派，兼容 64 字节带 ID 和 63 字节报告体；控制 `SET_REPORT(Output)` 在中断中入队，主循环处理。错误 ID/类型/长度和满控制队列会拒绝控制请求，不在中断中解析 JSON 或写 EEPROM。
 
-`0.6.0-qmk` 的 `device.status.layer_index` 等于实际 QMK 层 + 1（包含默认层）：L0 Codex→1，L1/L2/L3 普通→2/3/4，与 VIA 页号一致。十秒窗口和 USB 身份仍不随切层改变；VIA 等待/锁定初始普通 L1，Codex 身份初始 L0。当前硬件仍是已刷入的 0.5.0；本次层序、MO/TO 及主机显示尚待新版流水线/实机验证，历史 0.4.x 应答记录见 `development.md`。
+`0.6.0-qmk` 的 `device.status.layer_index` 等于实际 QMK 层 + 1（包含默认层）：L0 Codex→1，L1/L2/L3 普通→2/3/4，与 VIA 页号一致。十秒窗口和 USB 身份仍不随切层改变；VIA 等待/锁定初始普通 L1，Codex 身份初始 L0。流水线版已刷入，sys.version / device.status 返回 0.6.0-qmk，当前 layer_index=1（Codex L0）；用户随后整体反馈正常，不扩大为逐项输入/显示精测，历史 0.4.x 应答记录见 `development.md`。
 
 ## Channel 2 方法
 
