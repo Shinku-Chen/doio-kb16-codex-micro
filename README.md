@@ -12,7 +12,7 @@
 - 本版：上电 VIA 窗口 **10 秒**；Codex 层左下角 **长按 1 秒**回普通层。灯光、OLED 和键位存储逻辑不因本次改时长而重置。
 - `0.4.7-qmk` 已刷入、通过版本应答核验，用户反馈目前正常。`0.4.8-qmk` 的构建及离线验证记录见 [开发文档](docs/development.md)；**新时长版未在本次发布中刷入实机**。
 - Git 仓库只保存源码、定义和文档；编译产物只放 Release。升级前仍需备份，不保证任意旧固件的 EEPROM 都兼容。
-- **正式固件由 [GitHub Actions](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/workflows/firmware.yml) 从标签源码生成和发布，不使用本机编译附件。** `BUILD-INFO.json` 记录源码提交、QMK/编译器版本、流水线链接及资产摘要，最终校验和见 `SHA256SUMS`；此前本机上传的 0.4.8 附件改由流水线重建替换，标签保持不动。
+- **正式固件由 [GitHub Actions](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/workflows/firmware.yml) 从标签源码生成和发布，不使用本机编译附件。** `BUILD-INFO.json` 记录源码提交、QMK/编译器版本、流水线链接及资产摘要，最终校验和见 `SHA256SUMS`；0.4.8 已经 [流水线重建并替换附件](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41041000839)，原标签保持不动。
 
 ## 四层：第四层就是 Codex
 

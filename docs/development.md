@@ -2,6 +2,10 @@
 
 ## 正式发布：必须由流水线生成
 
+2026-10-30 已完成正式重建：[发布运行 41041000839](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41041000839) 的 build/release 均成功；[main 自动构建 41041022770](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41041022770) 也通过。云端 60 项固件回归、13 项打包检查、QMK 编译和来源/镜像检查均通过。发布脚本提交 `6694bb320eb24949c1fbd772e91fd4dce9c09eba`，固件源码仍为原标签 `6242c8fe1dca9ffb52ffa880243cefa712cee5e5`，没有移动标签或刷机。
+
+当前五份 Release 附件均由 `github-actions[bot]` 上传，回下载后 SHA256SUMS/BUILD-INFO 来源验证通过。云端重编译的 BIN/HEX 与先前本机版本字节相同，BIN 仍为 50,848 字节、SHA-256 `8deaf0da59ca51b900276e1b3225496559035ce364c5a39e2554ed7efaf7e988`；相同哈希并不代表复用了本机文件，来源可在全新 runner 的编译步骤和 BUILD-INFO 中追溯。BUILD-INFO SHA-256 `3e295658e6e2f57ad67af9ff8764d7958d3849aae50ed9e5fa99273eef6e331d`，新 SHA256SUMS SHA-256 `e534164f0f7fc8ef41548f0399b4031e94db12c9dfd2da67ee835ae3aef35076`。之后重建的动态元数据可能改变，以当次发布附件为准。
+
 用户已纠正正式发布方式：不能把本机生成的 BIN/HEX 上传后当作正式发布。`.github/workflows/firmware.yml` 使用全新 Linux runner，从确定的源码提交和固定 QMK 基线进行测试、编译、校验及发布；本地构建仅用于开发。以下旧本地构建哈希仅作为历史记录，**下载包以 Release 当前 SHA256SUMS 与 BUILD-INFO.json 为准**，不使用旧表格校验流水线重建包。
 
 - main / PR：构建并保存 Actions Artifact；不发布正式版本。
