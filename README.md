@@ -9,7 +9,7 @@
 ## 固件下载与当前版本
 
 - **[v0.4.9-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.9-qmk)**：固件 `.bin` / `.hex`、VIA 定义、`BUILD-INFO.json` 和 `SHA256SUMS`。
-- 本版修复任务灯全灭导致 OLED 黑屏：**屏幕独立息屏，无任务灯分配时保留 Logo+CODEX，进入 Codex 先展示完整 1 秒 Logo**。背光、键位存储、10 秒 VIA 窗口及 1 秒退出不变。新版尚未刷入，实机仍为 `0.4.8-qmk`。
+- 本版修复任务灯全灭导致 OLED 黑屏：**屏幕独立息屏，无任务灯分配时保留 Logo+CODEX，进入 Codex 先展示完整 1 秒 Logo**。背光、键位存储、10 秒 VIA 窗口及 1 秒退出不变。`0.4.9-qmk` 流水线固件已刷入，版本和 Codex 入层 Logo 已实机确认；一小时息屏及按键唤醒按用户选择跳过，尚未实测。
 - `0.4.8-qmk` 流水线固件已刷入，版本应答及实机验收通过：正常插电约 10 秒等待页、短按不切层、长按约 1 秒回 L0、返回 Codex 均正常；主机同时捕获四层切换，不把手按时长当作仪器精测。详见 [开发文档](docs/development.md)。
 - Git 仓库只保存源码、定义和文档；编译产物只放 Release。升级前仍需备份，不保证任意旧固件的 EEPROM 都兼容。
 - **正式固件由 [GitHub Actions](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/workflows/firmware.yml) 从标签源码生成和发布，不使用本机编译附件。** `BUILD-INFO.json` 记录源码提交、QMK/编译器版本、流水线链接及资产摘要，最终校验和见 `SHA256SUMS`；0.4.8 已经 [流水线重建并替换附件](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41041000839)，原标签保持不动。

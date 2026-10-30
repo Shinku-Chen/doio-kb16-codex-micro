@@ -1,6 +1,6 @@
 # QMK + VIA 双模式固件（codex_micro_via_v1）
 
-当前源码：`firmware/keymaps/codex_micro_via_v1/`，版本 `0.4.9-qmk`，保留 10 秒窗口及 1 秒长按退出；OLED 独立息屏，无任务灯分配保留 Logo，入层从首个可见帧展示约 1 秒。63 项固件离线检查通过，新版未刷入；实机 `0.4.8-qmk` 的启动/切层验收已通过。详细记录见 [开发](development.md)。
+当前源码：`firmware/keymaps/codex_micro_via_v1/`，版本 `0.4.9-qmk`，保留 10 秒窗口及 1 秒长按退出；OLED 独立息屏，无任务灯分配保留 Logo，入层从首个可见帧展示约 1 秒。63 项固件离线检查通过，流水线版本已刷入，版本/切层及用户入层 Logo 目视确认通过；用户跳过一小时息屏/按键唤醒。详细记录见 [开发](development.md)。
 
 保留环境四灯呼吸、留边的 Codex Logo/任务页、VIA 层号/实际输出提示；USB 和四层结构不变，不包含直接启动双接口方案。
 
