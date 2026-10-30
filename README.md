@@ -8,8 +8,8 @@
 
 ## 固件下载与当前版本
 
-- **[v0.4.8-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.8-qmk)**：固件 `.bin` / `.hex`、VIA 定义、`BUILD-INFO.json` 和 `SHA256SUMS`。
-- 本版：上电 VIA 窗口 **10 秒**；Codex 层左下角 **长按 1 秒**回普通层。灯光、OLED 和键位存储逻辑不因本次改时长而重置。
+- **[v0.4.9-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.9-qmk)**：固件 `.bin` / `.hex`、VIA 定义、`BUILD-INFO.json` 和 `SHA256SUMS`。
+- 本版修复任务灯全灭导致 OLED 黑屏：**屏幕独立息屏，无任务灯分配时保留 Logo+CODEX，进入 Codex 先展示完整 1 秒 Logo**。背光、键位存储、10 秒 VIA 窗口及 1 秒退出不变。新版尚未刷入，实机仍为 `0.4.8-qmk`。
 - `0.4.8-qmk` 流水线固件已刷入，版本应答及实机验收通过：正常插电约 10 秒等待页、短按不切层、长按约 1 秒回 L0、返回 Codex 均正常；主机同时捕获四层切换，不把手按时长当作仪器精测。详见 [开发文档](docs/development.md)。
 - Git 仓库只保存源码、定义和文档；编译产物只放 Release。升级前仍需备份，不保证任意旧固件的 EEPROM 都兼容。
 - **正式固件由 [GitHub Actions](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/workflows/firmware.yml) 从标签源码生成和发布，不使用本机编译附件。** `BUILD-INFO.json` 记录源码提交、QMK/编译器版本、流水线链接及资产摘要，最终校验和见 `SHA256SUMS`；0.4.8 已经 [流水线重建并替换附件](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41041000839)，原标签保持不动。
@@ -25,11 +25,11 @@
 ```bash
 # 在固件文件所在目录执行；命令先等待设备，再按内部 RESET
 dfu-util -w -a 2 -d 1EAF:0003 \
-  -D doio_kb16_rev2_codex_micro_v0.4.8-qmk.bin
+  -D doio_kb16_rev2_codex_micro_v0.4.9-qmk.bin
 ```
 
 4. 下载期间不要拔线或再按复位。若只重启、没捕获 DFU，先确认等待命令仍在，再重新尝试内部 RESET；出现 `UNKNOWN` / `LIBUSB_ERROR_PIPE` 则停止，断电重新进入，不做全片擦除或解保护。
-5. 下载完成后核验重新枚举及版本，**不要仅因复位阶段返回 `74` 就重复刷写**。本版 DFU 下载主体是 50,832 字节，BIN 的 50,848 字节还含 16 字节 suffix；两者不矛盾。HEX 不是原始 BIN，不能传给上述命令。
+5. 下载完成后核验重新枚举及版本，**不要仅因复位阶段返回 `74` 就重复刷写**。BIN 大小以本版 `BUILD-INFO.json` 为准，其中包含 16 字节 DFU suffix，下载主体不含 suffix。HEX 不是原始 BIN，不能传给上述命令。
 6. **验证正常开机时不按任何复位键**：拔 USB 等 5 秒，正常插回，不按 `RET`、内部 `RESET` 或其他键，不开 VIA。应显示 `VIA WAITTING` 约 10 秒，随后进入 Codex L3；左下角按住约 1 秒回普通 L0，屏幕显示 `1`，用 `TO(3)` 返回 Codex。
 
 首次刷写与回退的完整步骤、识别失败处理见 [使用与刷写](docs/usage.md)。屏幕文字和手按时长需要实机目视确认，USB 枚举计时只是辅助证据。
@@ -41,7 +41,7 @@ dfu-util -w -a 2 -d 1EAF:0003 \
 | 第 1 页 / L0 | `1` | 普通键盘 | 是，按键和旋钮均可配置 |
 | 第 2 页 / L1 | `2` | 普通键盘 | 是 |
 | 第 3 页 / L2 | `3` | 普通键盘 | 是 |
-| **第 4 页 / L3** | Logo + `CODEX`，随后任务状态 | **固定 Codex 层** | **否：该页可编辑保存，但运行忽略其内容** |
+| **第 4 页 / L3** | 进入先 Logo + `CODEX`；有任务则状态页，无任务保留 Logo | **固定 Codex 层** | **否：该页可编辑保存，但运行忽略其内容** |
 
 没有第五层。VIA 的 `0/1/2/3` 是从零开始的索引，屏幕普通层的 `1/2/3` 是便于阅读的编号。
 
@@ -126,7 +126,7 @@ R4     回 L0    ACT10    ACT11    ACT12
 
 ![实际输出 GUI+C](docs/assets/oled-via-shortcut.svg)
 
-**进入 Codex：** 终端 Logo + `CODEX` 约 1 秒，随后显示六个 AG 灯的状态估计。
+**进入 Codex：** 从首个可显示帧起展示终端 Logo + `CODEX` 约 1 秒；有任务灯分配时随后显示六个 AG 灯的状态估计，无任务灯分配时持续显示 Logo。任务结束并清除全部任务灯后回到 Logo，不再因 RGB 全灭而关屏。亮度 0 不等于任务释放，只有未分配或明确 `off` 才算无任务。
 
 ![Codex 进入画面](docs/assets/oled-codex-logo.svg)
 ![六个 AG 的任务状态估计](docs/assets/oled-codex-tasks.svg)
@@ -183,12 +183,12 @@ R4     回 L0    ACT10    ACT11    ACT12
 
 ### 优先级、扩展灯和息屏
 
-- USB 挂起、宿主明确关灯和空闲休眠优先，能屏蔽全部 RGB/OLED 及本地白光，但不阻断按键或切层。
+- USB 挂起和一小时空闲休眠关闭 RGB/OLED；宿主明确关灯只屏蔽 RGB 及本地白光，不再关闭 OLED。按键和切层始终不受影响。
 - 在允许显示时：切层键按住白光优先；ACT 上已分配的扩展任务灯 > 第四排环境 > 普通 ACT 按住白光。扩展任务 B=0 仍占灯位，`off` 才释放。
 - 固件支持任务灯槽 **0–12**：0–5 对应 AG00–AG05，6–12 对应 ACT06–ACT12 的 LED；**输入仍是 ACT，不会变成 AG06–AG12**。已检查的 Cindy 构建仍只下发六路，十三路需要宿主配套，不能仅凭此固件实现十三任务端到端灯光。
 - VIA 普通层按自己的 QMK RGB 配置运行，无 Codex 任务/环境覆盖；**一小时无输入或有效通信，背光与 OLED 同时关闭**。
-- Codex 层 OLED/RGB 跟随所有支持灯区的聚合下发状态；全部 off、零亮度或非变色效果全黑时同关，另有一小时无活动兜底。呼吸最低点不算关灯；首次未收到灯态前仍保留屏幕。
-- **有效心跳与重复报文都会续时**，但不能推翻宿主明确关灯。空闲超时后，输入或有效通信可唤醒；宿主明确关闭时须重新下发点亮状态。策略取决于当前层，不取决于 USB 身份。
+- Codex 背光仍跟随支持灯区的聚合状态：全部 off、零亮度或非变色效果全黑时关闭 RGB；呼吸最低点不算关灯。**OLED 仅因 USB 挂起或一小时无输入且无有效通信而关闭**，不跟随任务灯全灭或亮度 0；协议没有单独的 OLED 关屏指令。
+- **有效心跳与重复报文都会续时**。空闲超时后，输入或有效通信可唤醒 OLED；RGB 若仍被宿主明确关闭，则须重新下发点亮状态。灯光策略取决于当前层，不取决于 USB 身份。
 
 完整分类阈值、参数兼容、优先级及实机验收记录：[灯光表](docs/lighting.md) · [实现边界](docs/lighting-compatibility.md)。
 

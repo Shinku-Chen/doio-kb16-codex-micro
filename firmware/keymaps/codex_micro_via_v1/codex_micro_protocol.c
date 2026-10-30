@@ -803,6 +803,15 @@ static uint32_t light_pixel(codex_micro_light_t *light, uint8_t index, uint8_t c
     return (red << 16) | (green << 8) | blue;
 }
 
+bool codex_micro_has_task_lights(void) {
+    for (uint8_t slot = 0; slot < CODEX_MICRO_HOST_SLOT_COUNT; ++slot) {
+        if (thread_lights[slot].assigned && thread_lights[slot].effect != CODEX_MICRO_EFFECT_OFF) {
+            return true;
+        }
+    }
+    return false;
+}
+
 const char *codex_micro_task_status(uint8_t slot) {
     if (slot >= CODEX_MICRO_HOST_SLOT_COUNT || !thread_lights[slot].assigned || thread_lights[slot].effect == CODEX_MICRO_EFFECT_OFF) {
         return "--";

@@ -8,8 +8,8 @@ Turn a **DOIO KB16-01 Rev2** into a Codex Micro-compatible controller while keep
 
 ## Download and version
 
-- **[v0.4.8-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.8-qmk)** includes `.bin`, `.hex`, the VIA definition, `BUILD-INFO.json` and `SHA256SUMS`.
-- This version shortens the startup VIA window to **10 seconds** and the Codex bottom-left exit hold to **1 second**. Lighting, OLED rendering and layout storage logic are otherwise unchanged.
+- **[v0.4.9-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.9-qmk)** includes `.bin`, `.hex`, the VIA definition, `BUILD-INFO.json` and `SHA256SUMS`.
+- Fixes OLED blackout when all task lights are cleared: **independent screen sleep, a persistent Logo+CODEX when no task lights are assigned, and a full one-second entry logo**. RGB behavior, EEPROM, the 10-second VIA window and one-second exit are unchanged. Not flashed yet; the device still runs `0.4.8-qmk`.
 - The pipeline-built `0.4.8-qmk` has been flashed and hardware-checked: version replies, the approximately 10-second cold-start display, no switch on a short tap, exit to L0 after about a 1-second hold, and return to Codex all passed. Host monitoring also captured the four-layer route; hand timing is not precision measurement. See [development notes](docs/development.md).
 - Git contains source, definitions and documentation, not firmware binaries. Binaries are Release assets. Back up before upgrading: EEPROM compatibility with arbitrary older firmware is not guaranteed.
 - **Official assets are built from tagged source and published by [GitHub Actions](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/workflows/firmware.yml), not uploaded from a local build.** `BUILD-INFO.json` records source/QMK/compiler versions, workflow URL and asset hashes. Use the attached `SHA256SUMS`; the 0.4.8 assets have been [rebuilt and replaced by CI](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41041000839) without moving the tag.
@@ -25,11 +25,11 @@ Turn a **DOIO KB16-01 Rev2** into a Codex Micro-compatible controller while keep
 ```bash
 # Run from the downloaded firmware directory, then press internal RESET.
 dfu-util -w -a 2 -d 1EAF:0003 \
-  -D doio_kb16_rev2_codex_micro_v0.4.8-qmk.bin
+  -D doio_kb16_rev2_codex_micro_v0.4.9-qmk.bin
 ```
 
 4. Do not disconnect or reset during download. If the board only restarts, ensure the waiting command is still running before retrying internal RESET. Stop on `UNKNOWN` / `LIBUSB_ERROR_PIPE`, power-cycle and re-enter DFU; never mass-erase or unprotect.
-5. After download, verify re-enumeration and the running version; **do not blindly reflash because the reset stage returns `74`**. This version transfers 50,832 application bytes; the 50,848-byte BIN also includes its 16-byte DFU suffix. Do not pass Intel HEX to the raw BIN command.
+5. After download, verify re-enumeration and the running version; **do not blindly reflash because the reset stage returns `74`**. See this version's `BUILD-INFO.json` for the BIN size, which includes a 16-byte DFU suffix not transferred as application data. Do not pass Intel HEX to the raw BIN command.
 6. **Cold-start acceptance uses no reset button:** unplug for 5 seconds, reconnect normally without pressing RET/internal RESET/other keys, and keep VIA closed. Expect `VIA WAITTING` for about 10 seconds, then Codex L3. Hold bottom-left about 1 second to reach L0 (OLED `1`); use `TO(3)` to return.
 
 See [flashing and recovery](docs/usage.md). Screen text and manual hold timing require human observation; USB timing is supporting evidence only.
@@ -41,7 +41,7 @@ See [flashing and recovery](docs/usage.md). Screen text and manual hold timing r
 | First / L0 | `1` | Ordinary keyboard | Yes, keys and encoders |
 | Second / L1 | `2` | Ordinary keyboard | Yes |
 | Third / L2 | `3` | Ordinary keyboard | Yes |
-| **Fourth / L3** | Logo + `CODEX`, then task estimates | **Fixed Codex layer** | **No: edits can be stored/read back but are ignored at runtime** |
+| **Fourth / L3** | Entry Logo + `CODEX`; task estimates if assigned, otherwise the logo stays | **Fixed Codex layer** | **No: edits can be stored/read back but are ignored at runtime** |
 
 There is no fifth layer. VIA indices are zero-based; OLED numbers `1/2/3` are friendly display numbers for L0/L1/L2.
 
@@ -127,7 +127,7 @@ These images are generated from **actual 128×32 test framebuffers rendered by t
 
 ![Actual output GUI+C](docs/assets/oled-via-shortcut.svg)
 
-**Codex:** A terminal logo + `CODEX` appears for about 1 second on entry, followed by six AG light-derived estimates.
+**Codex:** A terminal logo + `CODEX` appears for about 1 second from the first visible frame on entry. Assigned task lights then show six AG light-derived estimates; with no assigned tasks, the logo stays. Clearing all tasks returns to the logo rather than blanking OLED. Brightness zero does not release a task; only unassigned or explicitly `off` slots count as absent.
 
 ![Codex entry](docs/assets/oled-codex-logo.svg)
 ![Six task-light estimates](docs/assets/oled-codex-tasks.svg)
@@ -184,12 +184,12 @@ Ambient covers R4C1–R4C4, not the six AG keys or row 3. It may light during ta
 
 ### Priority, extended slots and sleep
 
-- USB suspend, explicit host all-off and idle sleep override all RGB/OLED output, including local white feedback. Input and layer exit still work.
+- USB suspend and one-hour idle sleep turn off RGB/OLED. Host all-off overrides RGB and local white feedback only, no longer OLED. Input and layer exit still work.
 - When display is allowed: held exit-key white has priority; assigned ACT task light > fourth-row ambient > ordinary ACT press white. An extended task at B=0 still owns its LED; `off` releases it.
 - Firmware accepts task light slots **0–12**: 0–5 map to AG00–AG05, 6–12 to ACT06–ACT12 LEDs. **Input remains ACT, not AG06–AG12.** The inspected Cindy build still sends six light slots; thirteen-task end-to-end lighting needs host support as well.
 - Ordinary VIA layers use their QMK RGB settings, without Codex overlays. **One hour without input or valid host traffic switches RGB and OLED off together.**
-- In Codex, OLED/RGB follow the aggregate state of supported task/ambient zones, with the same one-hour fallback. All zones off, zero brightness, or black non-color-changing effects turn both off. A breathing trough is not an off command. Before the first light update, the screen remains available.
-- **Valid heartbeats and repeated packets renew the timer**, but cannot undo explicit host all-off. Input/valid traffic wakes an idle timeout; explicit host off requires a new light-on state. Policy follows the active layer, not USB identity.
+- In Codex, RGB still follows the aggregate task/ambient state: all zones off, zero brightness or black non-color-changing effects turn RGB off; a breathing trough does not. **OLED sleeps only on USB suspend or one hour without both input and valid host traffic**, not on all-off or brightness zero. The protocol has no separate OLED-off command.
+- **Valid heartbeats and repeated packets renew the timer**. Input/valid traffic wakes an idle OLED; RGB still explicitly disabled by the host requires a new light-on state. Lighting policy follows the active layer, not USB identity.
 
 See the detailed [light tables](docs/lighting.md) and [compatibility assessment](docs/lighting-compatibility.md) for thresholds, parameters, priority and historical hardware tests.
 

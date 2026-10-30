@@ -29,19 +29,21 @@ void poc_power_note_lighting(bool on) {
     host_lighting_on = on;
 }
 
-bool poc_power_should_sleep(void) {
+bool poc_power_should_oled_sleep(void) {
     if (rgb_matrix_get_suspend_state()) {
         return true;
     }
     uint32_t idle = last_input_activity_elapsed();
-    if (get_highest_layer(layer_state | default_layer_state) == POC_CODEX_LAYER) {
-        if (host_lighting_seen && !host_lighting_on) {
-            return true;
-        }
-    }
     uint32_t host_idle = timer_read32() - host_received_at;
     if (host_activity_seen && host_idle < idle) {
         idle = host_idle;
     }
     return idle >= POC_IDLE_SLEEP_MS;
+}
+
+bool poc_power_should_sleep(void) {
+    if (poc_power_should_oled_sleep()) {
+        return true;
+    }
+    return get_highest_layer(layer_state | default_layer_state) == POC_CODEX_LAYER && host_lighting_seen && !host_lighting_on;
 }

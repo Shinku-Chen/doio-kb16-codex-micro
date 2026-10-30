@@ -2,7 +2,7 @@
 
 ## 当前 QMK + VIA 固件（主实现）
 
-当前源码 `firmware/keymaps/codex_micro_via_v1` 为 `0.4.8-qmk`：10 秒 VIA 窗口、Codex 长按 1 秒回 L0；流水线固件已刷入，`sys.version` 和 `device.status` 均核验新版。冷启动画面及手动时长单独验收，见 `development.md`。休眠/灯光及六格 OLED 不变；十三槽仍需宿主配套。
+当前源码 `firmware/keymaps/codex_micro_via_v1` 为 `0.4.9-qmk`：OLED 独立息屏，无任务灯分配保留 Logo，入层完整展示约 1 秒；背光、10 秒 VIA 窗口、一秒退出、四层和 EEPROM 不变。新版未刷入；实机 `0.4.8-qmk` 的版本、启动/切层已验收，见 `development.md`。十三槽仍需宿主配套。
 
 - 上电 10 秒内收到有效 VIA 命令，就锁定 VIA 身份（`D010:1601`）直到断电。VIA 显示四页，L0–L2 是普通层，L3 页面仅保存改键、不执行。
 - 10 秒内没有 VIA 命令，键盘自动复位成 Codex 身份（`303A:8360`），默认 Layer 3，即 Codex 原生层。
@@ -20,7 +20,7 @@
 
 ### 1. 构建或获取固件
 
-Git 不存放预编译固件；正式刷写从 [Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.8-qmk) 下载流水线生成的 BIN/HEX、VIA 定义、BUILD-INFO.json 及 SHA256SUMS。核验源码提交和流水线链接，并在下载目录执行 `shasum -a 256 -c SHA256SUMS`。本地构建仅供开发验证，不替代正式发布附件：
+Git 不存放预编译固件；正式刷写从 [Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.9-qmk) 下载流水线生成的 BIN/HEX、VIA 定义、BUILD-INFO.json 及 SHA256SUMS。核验源码提交和流水线链接，并在下载目录执行 `shasum -a 256 -c SHA256SUMS`。本地构建仅供开发验证，不替代正式发布附件：
 
 ```bash
 export QMK_HOME=~/qmk_firmware
@@ -43,12 +43,12 @@ qmk compile -kb doio/kb16/rev2 -km codex_micro_via_v1
 ### 3. 刷写
 
 ```bash
-dfu-util -w -a 2 -d 1EAF:0003 -D doio_kb16_rev2_codex_micro_v0.4.8-qmk.bin
+dfu-util -w -a 2 -d 1EAF:0003 -D doio_kb16_rev2_codex_micro_v0.4.9-qmk.bin
 ```
 
 alt 2 必须显示 `Upload to Flash 0x8002000`（应用起址 `0x08002000`）。只使用 BIN；HEX 不能当作原始二进制传给此命令。确保只有目标这台 DFU 设备，下载期间保持 USB 连接，不再按 RESET。
 
-本版成功下载主体为 50,832 字节，带 suffix 的 BIN 文件为 50,848 字节。若显示 100% / `Download done.` 后复位返回 `74`，先检查设备是否重新枚举、运行版本是否为 `0.4.8-qmk`，不要自动重复写入。若出现 `UNKNOWN` / `LIBUSB_ERROR_PIPE`，停止并断电，重新用内部 RESET 进入 DFU；不要用全片擦除、解保护或改 Bootloader 来试错。
+BIN 大小以本版 `BUILD-INFO.json` 为准，下载主体不含文件末尾的 16 字节 DFU suffix。若显示 100% / `Download done.` 后复位返回 `74`，先检查设备是否重新枚举、运行版本是否为 `0.4.9-qmk`，不要自动重复写入。若出现 `UNKNOWN` / `LIBUSB_ERROR_PIPE`，停止并断电，重新用内部 RESET 进入 DFU；不要用全片擦除、解保护或改 Bootloader 来试错。
 
 ### 4. 正常断电启动与切层验收
 
@@ -95,7 +95,7 @@ USB 从 VIA 枚举到 Codex 的时间只是启动窗口的近似观测，不等�
 
 ## OLED
 
-`0.4.8-qmk` 流水线版本已刷并核验运行版本。正常冷启动不按 RET/内部 RESET，才可观察完整 `VIA WAITTING` 约 10 秒流程；画面和手动时长不以 RPC 成功替代。留边、Codex Logo/任务页、普通数字/按键页和休眠规则不变；详见 `oled.md`。
+`0.4.9-qmk` 不再因宿主任务/环境灯全灭或零亮度而关屏；无任务灯分配持续显示 Logo+CODEX，有任务则入层展示约 1 秒 Logo 后转六格任务页。仅 USB 挂起或一小时无输入且无有效通信关闭 OLED；心跳/重复有效报文续时。正常冷启动不按 RET/内部 RESET，才可观察完整 `VIA WAITTING` 约 10 秒流程；画面与时长不能以 RPC 应答代替验收，详见 `oled.md`。
 
 ## 恢复官方 VIA 固件
 

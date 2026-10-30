@@ -13,7 +13,7 @@
 #define CODEX_MICRO_REPORT_BODY_SIZE 63
 #define CODEX_MICRO_FRAGMENT_SIZE 61
 #define CODEX_MICRO_CHANNEL_RPC 2
-#define CODEX_MICRO_VERSION "0.4.8-qmk"
+#define CODEX_MICRO_VERSION "0.4.9-qmk"
 
 typedef enum {
     CODEX_MICRO_ACTION_06,
@@ -44,3 +44,4 @@ void codex_micro_send_encoder_press(bool pressed);
 bool codex_micro_rgb_indicators(uint8_t led_min, uint8_t led_max);
 void codex_micro_handle_report(uint8_t *data, uint8_t length);
 const char *codex_micro_task_status(uint8_t slot);
+bool codex_micro_has_task_lights(void);

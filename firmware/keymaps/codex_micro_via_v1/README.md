@@ -2,7 +2,7 @@
 
 QMK + VIA 双模式 keymap，目标硬件 DOIO KB16-01 Rev2（STM32F103xB，128 KB Flash）。
 
-当前源码 `0.4.8-qmk`：VIA 冷启动窗口 10 秒、L3 左下角长按 1 秒回 L0，等待显示 `VIA WAITTING`，无 DOIO 页。60 项离线检查及编译通过，本版流水线固件已刷入并通过版本核验，10 秒启动与约一秒退出/返回获用户实机确认；不代表其他项目已重测；上一版 `0.4.7-qmk` 已刷并获用户正常反馈。休眠、灯态、六格 OLED 和四层不变；完整双语指南及展示见仓库根 README。
+当前源码 `0.4.9-qmk`：OLED 不再跟随 Codex RGB 全灭关屏，无任务灯分配时保留 Logo，入层从首个可见帧展示完整约 1 秒。保留一小时静默/USB 挂起息屏、有效心跳及重复报文续时；RGB、四层、EEPROM、10 秒启动和一秒退出不变。63 项固件离线检查通过，新版未刷入；实机仍为已通过启动/切层验收的 `0.4.8-qmk`。完整双语指南及展示见仓库根 README。
 
 ## 模式
 
@@ -47,7 +47,7 @@ ACT06 ACT07 ACT08 ACT09
 | `poc_mode.c` | 10 秒窗口、BKP 标志、模式复位 |
 | `poc_usb.c` | 描述符选择与 raw HID 长度（core patch 的强符号） |
 | `poc_via.c` | `via_command_kb()` 路由：VIA 模式放过，Codex 模式吞掉 |
-| `poc_power.c/.h` | 共用一小时兜底、心跳/重复通信续时、宿主关灯和 USB 挂起优先级 |
+| `poc_power.c/.h` | 共用一小时兜底与 USB 挂起、心跳/重复通信续时；宿主关灯只门控 RGB，不关闭 OLED |
 | `oled_icons.c` / `oled_splash.h` | 留边的 Logo、任务状态、居中数字和临时按键页，包含默认层 |
 | `oled_input.c` | 解码最终 6KRO/NKRO、消费/系统和鼠标报告，不写屏、不保存输入日志 |
 

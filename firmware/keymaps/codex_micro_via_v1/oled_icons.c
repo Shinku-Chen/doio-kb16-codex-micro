@@ -26,6 +26,7 @@ static uint8_t current_layer = 0xff;
 static uint8_t recent_source;
 static bool have_input;
 static uint32_t layer_entered_at;
+static bool layer_frame_pending;
 static uint32_t input_updated_at;
 static uint8_t frame[OLED_FRAME_BYTES];
 static uint8_t last_frame[OLED_FRAME_BYTES];
@@ -37,7 +38,7 @@ static void sync_layer(void) {
         return;
     }
     current_layer = layer;
-    layer_entered_at = timer_read32();
+    layer_frame_pending = true;
     memset(inputs, 0, sizeof(inputs));
     have_input = false;
 }
@@ -48,6 +49,7 @@ void oled_controller_init(void) {
     recent_source = 0;
     have_input = false;
     frame_valid = false;
+    layer_frame_pending = false;
     layer_entered_at = timer_read32();
     input_updated_at = layer_entered_at;
     poc_oled_input_reset();
@@ -142,7 +144,7 @@ static void draw_tasks(void) {
 }
 
 void oled_controller_render(void) {
-    if (poc_power_should_sleep()) {
+    if (poc_power_should_oled_sleep()) {
         oled_off();
         return;
     }
@@ -150,10 +152,14 @@ void oled_controller_render(void) {
     sync_layer();
     memset(frame, 0, sizeof(frame));
     uint32_t now = timer_read32();
+    if (layer_frame_pending) {
+        layer_entered_at = now;
+        layer_frame_pending = false;
+    }
     if (poc_mode_via_waiting()) {
         draw_centered("VIA WAITTING", 12, 1);
     } else if (current_layer == POC_CODEX_LAYER) {
-        if (now - layer_entered_at < OLED_LAYER_SPLASH_MS) {
+        if (now - layer_entered_at < OLED_LAYER_SPLASH_MS || !codex_micro_has_task_lights()) {
             memcpy_P(frame, codex_splash, sizeof(frame));
         } else {
             draw_tasks();

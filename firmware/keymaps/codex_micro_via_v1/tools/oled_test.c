@@ -467,24 +467,26 @@ static void test_codex_host_display_power(void) {
     assert(display_active);
     feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"e\":0}]}");
     render();
-    assert(!display_active);
+    assert(display_active && poc_power_should_sleep());
+    assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
     feed("{\"method\":\"device.status\",\"id\":910010}");
     render();
-    assert(!display_active);
+    assert(display_active && poc_power_should_sleep());
     feed("{\"method\":\"v.oai.rgbcfg\",\"params\":{\"ambient\":{\"c\":0,\"b\":1,\"e\":3,\"s\":0.4}}}");
     render();
     assert(display_active);
     feed("{\"method\":\"v.oai.rgbcfg\",\"params\":{\"ambient\":{\"b\":0}}}");
     render();
-    assert(!display_active);
+    assert(display_active && poc_power_should_sleep());
     layer_state = 1;
     render();
     assert(display_active);
     assert_digit('1');
     layer_state = 1UL << POC_CODEX_LAYER;
     render();
-    assert(!display_active);
-    puts("PASS: Codex OLED follows aggregate host off/on and zero brightness, ignores breath black phases, and VIA ignores the Codex host-off flag");
+    assert(display_active && poc_power_should_sleep());
+    assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
+    puts("PASS: Codex OLED remains on across task all-off, ambient zero brightness, heartbeat and layer entry while RGB obeys host off");
 }
 
 static void test_extended_tasks_keep_display_bounded(void) {
@@ -492,15 +494,79 @@ static void test_extended_tasks_keep_display_bounded(void) {
     render();
     fake_timer = 1000;
     render();
-    uint8_t expected[sizeof(screen)];
-    memcpy(expected, screen, sizeof(screen));
+    assert(!codex_micro_has_task_lights());
+    assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
+    uint8_t expected[sizeof(screen)] = {0};
+    const char *const labels[] = {"1:--", "2:--", "3:--", "4:--", "5:--", "6:--"};
+    for (uint8_t slot = 0; slot < 6; ++slot) {
+        expected_text(expected, labels[slot], 8 + slot % 3 * 38, 7 + slot / 3 * 11, 1);
+    }
     feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":6,\"c\":5009407,\"b\":1,\"e\":1},{\"id\":12,\"c\":16711680,\"b\":1,\"e\":1}]}");
     render();
+    assert(codex_micro_has_task_lights());
     assert(memcmp(expected, screen, sizeof(screen)) == 0);
     assert(strcmp(codex_micro_task_status(6), "RUN") == 0);
     assert(strcmp(codex_micro_task_status(12), "ERR") == 0);
     assert_margins();
+    feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":6,\"e\":0}]}");
+    render();
+    assert(codex_micro_has_task_lights());
+    assert(memcmp(expected, screen, sizeof(screen)) == 0);
+    feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":12,\"e\":0}]}");
+    render();
+    assert(display_active && !codex_micro_has_task_lights());
+    assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
     puts("PASS: extended task-light storage leaves the six-cell OLED layout within its safe margins");
+}
+
+static void test_empty_codex_logo(void) {
+    reset_screen(POC_CODEX_LAYER);
+    render();
+    fake_timer = 60000;
+    render();
+    assert(display_active && !codex_micro_has_task_lights());
+    assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
+    feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"c\":5009407,\"b\":0,\"e\":4,\"s\":0}]}");
+    render();
+    assert(display_active && codex_micro_has_task_lights() && poc_power_should_sleep());
+    assert(memcmp(screen, codex_splash, sizeof(screen)) != 0);
+    feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"c\":0,\"b\":1,\"e\":1}]}");
+    render();
+    assert(display_active && codex_micro_has_task_lights() && poc_power_should_sleep());
+    assert(memcmp(screen, codex_splash, sizeof(screen)) != 0);
+    feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"e\":0}]}");
+    feed("{\"method\":\"v.oai.rgbcfg\",\"params\":{\"ambient\":{\"c\":5009407,\"b\":1,\"e\":4}}}");
+    render();
+    assert(display_active && !codex_micro_has_task_lights() && !poc_power_should_sleep());
+    assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
+    feed("{\"method\":\"v.oai.rgbcfg\",\"params\":{\"ambient\":{\"e\":0}}}");
+    render();
+    assert(display_active && poc_power_should_sleep());
+    assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
+    puts("PASS: no assigned task lights keeps the Codex logo, brightness zero/black/frozen tasks stay allocated, and ambient alone is not a task");
+}
+
+static void test_visible_codex_entry(void) {
+    reset_screen(0);
+    render();
+    feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"c\":5009407,\"b\":0,\"e\":1}]}");
+    layer_state = 1UL << POC_CODEX_LAYER;
+    keyboard(0, 0x06);
+    rgb_suspended = true;
+    fake_timer = 5000;
+    render();
+    assert(!display_active);
+    rgb_suspended = false;
+    render();
+    assert(display_active && poc_power_should_sleep());
+    assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
+    fake_timer += OLED_LAYER_SPLASH_MS - 1;
+    render();
+    assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
+    ++fake_timer;
+    render();
+    assert(display_active && memcmp(screen, codex_splash, sizeof(screen)) != 0);
+    puts("PASS: Codex entry starts its full one-second logo at the first visible frame despite early input, host RGB off or USB suspend");
 }
 
 static void test_via_boot_waiting(void) {
@@ -538,6 +604,8 @@ int main(void) {
     test_display_power();
     test_extended_tasks_keep_display_bounded();
     test_codex_host_display_power();
+    test_empty_codex_logo();
+    test_visible_codex_entry();
     test_via_boot_waiting();
     return 0;
 }
