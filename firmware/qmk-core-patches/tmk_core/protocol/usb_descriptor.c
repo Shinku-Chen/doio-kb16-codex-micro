@@ -1196,6 +1196,102 @@ void set_serial_number_descriptor(void) {
 
 #endif // defined(SERIAL_NUMBER)
 
+#if defined(POC_DUAL_USB) && defined(PROTOCOL_CHIBIOS)
+/*
+ * Alternate USB identity (DOIO KB16-01 / VIA).
+ *
+ * The keyboard boots with the Codex Micro identity so the desktop app finds
+ * it, and switches to this identity when the VIA window is open. Only the
+ * device, configuration and raw HID report descriptors change; the keyboard
+ * interfaces stay identical.
+ */
+#    include <string.h>
+
+#    ifndef POC_VIA_VENDOR_ID
+#        define POC_VIA_VENDOR_ID 0xD010
+#    endif
+#    ifndef POC_VIA_PRODUCT_ID
+#        define POC_VIA_PRODUCT_ID 0x1601
+#    endif
+#    ifndef POC_VIA_DEVICE_VER
+#        define POC_VIA_DEVICE_VER 0x0001
+#    endif
+#    ifndef POC_VIA_MANUFACTURER
+#        define POC_VIA_MANUFACTURER "DOIO"
+#    endif
+#    ifndef POC_VIA_PRODUCT
+#        define POC_VIA_PRODUCT "KB16-01"
+#    endif
+#    ifndef POC_VIA_RAW_EPSIZE
+#        define POC_VIA_RAW_EPSIZE 32
+#    endif
+
+bool     poc_usb_via_mode(void);
+uint16_t poc_raw_hid_epsize(void);
+
+// VIA's raw HID interface: usage page 0xFF60, usage 0x61, no report ID and
+// 32 byte reports. Matches the identity the stock firmware exposes.
+const USB_Descriptor_HIDReport_Datatype_t PROGMEM ViaRawReport[] = {
+    HID_RI_USAGE_PAGE(16, 0xFF60), // Vendor Defined
+    HID_RI_USAGE(8, 0x61),         // Vendor Defined
+    HID_RI_COLLECTION(8, 0x01),    // Application
+        // Data to host
+        HID_RI_USAGE(8, 0x62),     // Vendor Defined
+        HID_RI_LOGICAL_MINIMUM(8, 0x00),
+        HID_RI_LOGICAL_MAXIMUM(16, 0x00FF),
+        HID_RI_REPORT_COUNT(8, POC_VIA_RAW_EPSIZE),
+        HID_RI_REPORT_SIZE(8, 0x08),
+        HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+
+        // Data from host
+        HID_RI_USAGE(8, 0x63),     // Vendor Defined
+        HID_RI_LOGICAL_MINIMUM(8, 0x00),
+        HID_RI_LOGICAL_MAXIMUM(16, 0x00FF),
+        HID_RI_REPORT_COUNT(8, POC_VIA_RAW_EPSIZE),
+        HID_RI_REPORT_SIZE(8, 0x08),
+        HID_RI_OUTPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NON_VOLATILE),
+    HID_RI_END_COLLECTION(0),
+};
+
+const USB_Descriptor_String_t PROGMEM ViaManufacturerString = {
+    .Header = {
+        .Size                   = USB_DESCRIPTOR_SIZE_LITERAL_U16STRING(USBSTR(POC_VIA_MANUFACTURER)),
+        .Type                   = DTYPE_String
+    },
+    .UnicodeString              = USBSTR(POC_VIA_MANUFACTURER)
+};
+
+const USB_Descriptor_String_t PROGMEM ViaProductString = {
+    .Header = {
+        .Size                   = USB_DESCRIPTOR_SIZE_LITERAL_U16STRING(USBSTR(POC_VIA_PRODUCT)),
+        .Type                   = DTYPE_String
+    },
+    .UnicodeString              = USBSTR(POC_VIA_PRODUCT)
+};
+
+static USB_Descriptor_Device_t        poc_via_device;
+static USB_Descriptor_Configuration_t poc_via_configuration;
+static bool                           poc_via_descriptors_ready;
+
+static void poc_prepare_via_descriptors(void) {
+    if (poc_via_descriptors_ready) {
+        return;
+    }
+
+    memcpy(&poc_via_device, &DeviceDescriptor, sizeof(poc_via_device));
+    poc_via_device.VendorID      = POC_VIA_VENDOR_ID;
+    poc_via_device.ProductID     = POC_VIA_PRODUCT_ID;
+    poc_via_device.ReleaseNumber = POC_VIA_DEVICE_VER;
+
+    memcpy(&poc_via_configuration, &ConfigurationDescriptor, sizeof(poc_via_configuration));
+    poc_via_configuration.Raw_HID.HIDReportLength      = sizeof(ViaRawReport);
+    poc_via_configuration.Raw_INEndpoint.EndpointSize  = POC_VIA_RAW_EPSIZE;
+    poc_via_configuration.Raw_OUTEndpoint.EndpointSize = POC_VIA_RAW_EPSIZE;
+
+    poc_via_descriptors_ready = true;
+}
+#endif // defined(POC_DUAL_USB) && defined(PROTOCOL_CHIBIOS)
+
 /**
  * This function is called by the library when in device mode, and must be overridden (see library "USB Descriptors"
  * documentation) by the application code so that the address and size of a requested descriptor can be given
@@ -1211,12 +1307,30 @@ uint16_t get_usb_descriptor(const uint16_t wValue, const uint16_t wIndex, const 
 
     switch (DescriptorType) {
         case DTYPE_Device:
+#if defined(POC_DUAL_USB) && defined(PROTOCOL_CHIBIOS)
+            if (poc_usb_via_mode()) {
+                poc_prepare_via_descriptors();
+                Address = &poc_via_device;
+            } else {
+                Address = &DeviceDescriptor;
+            }
+#else
             Address = &DeviceDescriptor;
+#endif
             Size    = sizeof(USB_Descriptor_Device_t);
 
             break;
         case DTYPE_Configuration:
+#if defined(POC_DUAL_USB) && defined(PROTOCOL_CHIBIOS)
+            if (poc_usb_via_mode()) {
+                poc_prepare_via_descriptors();
+                Address = &poc_via_configuration;
+            } else {
+                Address = &ConfigurationDescriptor;
+            }
+#else
             Address = &ConfigurationDescriptor;
+#endif
             Size    = sizeof(USB_Descriptor_Configuration_t);
 
             break;
@@ -1228,11 +1342,25 @@ uint16_t get_usb_descriptor(const uint16_t wValue, const uint16_t wIndex, const 
 
                     break;
                 case 0x01:
+#if defined(POC_DUAL_USB) && defined(PROTOCOL_CHIBIOS)
+                    if (poc_usb_via_mode()) {
+                        Address = &ViaManufacturerString;
+                        Size    = pgm_read_byte(&ViaManufacturerString.Header.Size);
+                        break;
+                    }
+#endif
                     Address = &ManufacturerString;
                     Size    = pgm_read_byte(&ManufacturerString.Header.Size);
 
                     break;
                 case 0x02:
+#if defined(POC_DUAL_USB) && defined(PROTOCOL_CHIBIOS)
+                    if (poc_usb_via_mode()) {
+                        Address = &ViaProductString;
+                        Size    = pgm_read_byte(&ViaProductString.Header.Size);
+                        break;
+                    }
+#endif
                     Address = &ProductString;
                     Size    = pgm_read_byte(&ProductString.Header.Size);
 
@@ -1282,6 +1410,14 @@ uint16_t get_usb_descriptor(const uint16_t wValue, const uint16_t wIndex, const 
 
 #ifdef RAW_ENABLE
                 case RAW_INTERFACE:
+#if defined(POC_DUAL_USB) && defined(PROTOCOL_CHIBIOS)
+                    if (poc_usb_via_mode()) {
+                        poc_prepare_via_descriptors();
+                        Address = &poc_via_configuration.Raw_HID;
+                        Size = sizeof(USB_HID_Descriptor_HID_t);
+                        break;
+                    }
+#endif
                     Address = &ConfigurationDescriptor.Raw_HID;
                     Size    = sizeof(USB_HID_Descriptor_HID_t);
 
@@ -1339,6 +1475,13 @@ uint16_t get_usb_descriptor(const uint16_t wValue, const uint16_t wIndex, const 
 
 #ifdef RAW_ENABLE
                 case RAW_INTERFACE:
+#if defined(POC_DUAL_USB) && defined(PROTOCOL_CHIBIOS)
+                    if (poc_usb_via_mode()) {
+                        Address = &ViaRawReport;
+                        Size    = sizeof(ViaRawReport);
+                        break;
+                    }
+#endif
                     Address = &RawReport;
                     Size    = sizeof(RawReport);
 

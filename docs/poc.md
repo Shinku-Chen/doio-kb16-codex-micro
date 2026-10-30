@@ -1,13 +1,15 @@
 # PoC：VIA / Codex 顺序模式
 
+> 本文是最初的设计草稿，以下五层/30 秒等旧参数仅保留历史。当前 `0.4.8-qmk` 为 L0–L2 普通 VIA、L3 固定 Codex，上电 10 秒窗口、Codex 左下角长按 1 秒回 L0；无 Input / `keymap.json` / Mapper。请按 [当前双模式](via-dual-mode.md) 和 [README](../README.md) 使用。
+
 ## 目标
 
 插电后先进入 VIA 模式，30 秒内如果收到 VIA 命令就一直保持 VIA；否则 30 秒后切到 Codex Micro。VIA 连接后不会自动切回 Codex；改完/刷完后断电重插。
 
 分层职责：
 
-- 层 0：纯 Codex 原生控制，固定
-- 层 1-3：Number / Navigation / System，VIA 在线改键
+- Layer 0-3：MAIN / FN / MOUSE / RGB，VIA 在线改键
+- Layer 4：Codex 原生控制；物理映射由 `keymap.json` 提供，Input 可改
 
 OLED 显示：当前层号、六个任务状态。额度显示默认关闭（需要 host daemon，暂不做）。
 
@@ -17,7 +19,7 @@ OLED 显示：当前层号、六个任务状态。额度显示默认关闭（需
 上电
   └─ VIA 模式（0xD010:0x1601，FF60:0061）
        ├─ 30s 内收到 VIA 命令 → via_seen=true，保持 VIA
-       ├─ 30s 内没有 VIA 命令 → 切换 Codex
+       ├─ 30s 内没有 VIA 命令 → 正常模式，默认 Layer 4（Codex）
        └─ via_seen → 一直保持；断电重插后重新计时
 
 切换 = 写 .noinit 标志 → reset_keyboard()
@@ -28,10 +30,10 @@ OLED 显示：当前层号、六个任务状态。额度显示默认关闭（需
 
 `firmware/keymaps/codex_micro_configurable_v1_3/`：
 
-- `poc_config.h` — 30s 窗口、层偏移、magic
+- `poc_config.h` — 30s 窗口、层号、magic
 - `poc_mode.c/h` — 模式标志、计时、强制切换
 - `poc_usb.c/h` — USB 描述符选择 stub
-- `poc_via.c/h` — VIA 命令检测、层数量/偏移
+- `poc_via.c/h` — VIA 命令检测、层数量/写保护
 - `poc_quota.c/h` — 可选额度 JSON 解析，默认不编译
 - `poc_oled.c/h` — OLED 仪表盘
 - `keymap.c` — `keyboard_init_user` / `matrix_scan_user` / `oled_task_user` 挂钩
@@ -67,8 +69,8 @@ OLED 的任务字母来自 `v.oai.thstatus` 的颜色/effect，不是任务标�
 **未实现**
 
 - USB 描述符真正切换（`poc_usb.c` 只是 stub，需要 core patch）
-- 打开 `VIA_ENABLE` / `DYNAMIC_KEYMAP_ENABLE`；描述符、层 offset 和 EEPROM 分区就绪后再开
-- VIA 的 layer offset 真正接入 `dynamic_keymap_*`（需要 core patch）
+- 打开 `VIA_ENABLE` / `DYNAMIC_KEYMAP_ENABLE`；描述符和存储分区就绪后再开
+- VIA 的 Layer 0-3 真正接入 `dynamic_keymap_*`（需要 core patch）
 - EEPROM 分区（Codex A/B 配置 vs QMK dynamic keymap）
 - host 侧额度 daemon（默认不做；只有 `POC_OLED_QUOTA=yes` 时才需要，见 `quota.md`）
 - VIA 模式的按键/编码器写入验证
@@ -79,4 +81,4 @@ OLED 的任务字母来自 `v.oai.thstatus` 的颜色/effect，不是任务标�
 - 30 秒窗口对首次打开 VIA 偏紧；可改 60 秒或按住键插电强制 VIA。
 - 切换会重新枚举 USB；ChatGPT 是否自动重新识别要实测。
 - VIA 写入过程中拔电可能丢写；确保写入完成后再断电。
-- VIA 层偏移、EEPROM 分区和 encoder 支持都需要实机验证。
+- VIA Layer 0-3、存储分区和 encoder 支持都需要实机验证。

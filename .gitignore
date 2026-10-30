@@ -12,3 +12,4 @@ firmware/releases/
 # Local build artifacts
 **/bin/
 **/obj/
+kb16-fw/target/

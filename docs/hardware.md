@@ -41,7 +41,8 @@ Codex Micro 模式：
 ## Bootloader
 
 - Rev2 使用 STM32duino / Maple bootloader。
-- 进入方式：拔掉 USB，按住左上角键，再插上 USB；此时键盘不输入。
+- 本机已验证方式：背面实体 `RET` 复位/重插后捕获 `1EAF:0003`；需先启动监测，DFU 窗口可能短暂。2026-10-30 已通过这一路径刷入并启动 `0.2.0-qmk`，无需为此次刷写另试 BOOT。
+- QMK Rev2 文档另列 Bootmagic（按住矩阵 `[0,0]` 后插 USB）及 `QK_BOOT`。Bootmagic 会重置 EEPROM，不作为保留 VIA 键位时的首选；按键布局里也必须实际配置了 `QK_BOOT` 才能使用该动作。
 - 刷写命令（QMK 文档）：
 
 ```bash
@@ -49,6 +50,26 @@ dfu-util -a 2 -d 1EAF:0003 -D <firmware.bin>
 ```
 
 刷完后拔插一次进入新固件。
+
+## 2026-10-29 实机核对
+
+在键盘连接、原厂 VIA 3.0 固件运行的情况下完成：
+
+| 项目 | 结果 | 依据 |
+|---|---|---|
+| USB 身份 | `D010:1601`，DOIO | macOS USB 枚举 |
+| 矩阵左上角方键 | `row 0, col 0` | VIA matrix-state 实测 |
+| 左上旋钮按下 | `row 0, col 4` | VIA matrix-state 实测 |
+| 右上旋钮按下 | `row 1, col 4` | VIA matrix-state 实测 |
+| 下方旋钮按下 | `row 2, col 4` | VIA matrix-state 实测 |
+| 左上旋钮 CW | `0x6F` 亮度+ | consumer HID 实测 |
+| 右上旋钮 CW / CCW | `0xE9` 音量+ / `0xEA` 音量− | consumer HID 实测 |
+| 下方旋钮 CW | `0xB5` 下一首 | consumer HID 实测 |
+| HSE | 8 MHz | QMK STM32duino `board.h` 的 `STM32_HSECLK`，原厂固件 USB 已工作 |
+| OLED 方向 | 与原厂 rotation 0 一致 | QMK `oled_driver.c` 的 `0xA1/0xC8`、`COM_PINS_SEQ` |
+| WS2812 顺序 | LED 0..15 按矩阵 row-major | QMK `kb16/info.json` 的 `rgb_matrix.layout` |
+
+结论：矩阵、三个旋钮的按下位置和旋转方向已经用原厂固件实测确认；HSE、OLED 初始化方向和 WS2812 逻辑顺序由原厂 QMK 定义确认。OLED 实际显示方向、WS2812 实际灯序和自定义固件的 HSE 仍需在刷入 `kb16-fw` 后做一次目视/枚举确认。
 
 ## 不支持
 

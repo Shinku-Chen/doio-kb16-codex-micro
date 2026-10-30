@@ -1,6 +1,6 @@
 # Work Louder Input 兼容性方案
 
-> 2026-10-29 范围更新：不再需要 VIA。目标改为「完整兼容 Codex Micro + 能用 Work Louder Input 自定义键盘内容」。
+> 2026-10-29 范围定稿：保留 30 秒 VIA 窗口；正常模式兼容 Codex Micro，并可用 Work Louder Input 自定义 Layer 4 的物理映射。固件共 5 层，VIA 直接编辑 Layer 0-3。
 
 > 参考实现：`conol-ai/openmicrokbd` 已经在 STM32F072（128 KB Flash / 16 KB RAM）上实现了 Codex Micro compat + Input `fs.*` + keymap.json/smart_actions.json；详见 `docs/openmicrokbd.md`。
 
