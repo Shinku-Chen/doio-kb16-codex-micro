@@ -1,86 +1,50 @@
-# QMK + VIA 双模式固件（codex_micro_via_v1）
+# QMK + VIA 双模式
 
-当前源码：`firmware/keymaps/codex_micro_via_v1/`，版本 `0.5.0-qmk`，保留十秒窗口及一秒退出，L3 新开放五处 VIA 自定义与 OLED 实际输出提示；详见 [五处改键](codex-via-keys.md)。main 流水线测试固件已校验并刷入，版本和默认 L3 应答正确，未创建 Release；实体新功能和一小时唤醒仍待实测。
-
-保留环境四灯呼吸、留边的 Codex Logo/任务页、VIA 层号/实际输出提示；USB 和四层结构不变，不包含直接启动双接口方案。
+当前开发源码 `0.6.0-qmk`：Codex 调整到第一页 L0，L1–L3 普通 VIA；取消固定长按退出，切层完全由用户配置。设备仍为 0.5.0，本版未刷入。
 
 ## 四层模型
 
-| VIA 编辑页 | 固件层 | 实际运行内容 |
+| VIA 编辑页 | 固件层 | 实际运行 |
 |---|---|---|
-| 第一页 / 0 | Layer 0 | 普通键盘，执行 VIA 改键 |
-| 第二页 / 1 | Layer 1 | 普通键盘，执行 VIA 改键 |
-| 第三页 / 2 | Layer 2 | 普通键盘，执行 VIA 改键 |
-| 第四页 / 3 | Layer 3 | 原生 Codex 固定，仅五处 VIA 自定义执行 |
+| 第一页 | L0 | 固定 AG/ACT/JOY/ENC + 五处 VIA 自定义 |
+| 第二页 | L1 | 普通动态键位/encoder map，普通透明继承基底 |
+| 第三页 | L2 | 普通动态键位/encoder map |
+| 第四页 | L3 | 普通动态键位/encoder map |
 
-- 只定义四层，`DYNAMIC_KEYMAP_LAYER_COUNT=4`、`VIA_VISIBLE_LAYER_COUNT=4`、`POC_CODEX_LAYER=3`；没有可进入的 Layer 4。
-- 第四页不是第四个普通键盘层：仅 R1C1/R1C4、A/B 按下及 R4C1 执行配置，不能改变 AG/ACT、旋转或 C 按下的原生映射。剩余编辑值只存储。
-- 从普通层配置 `TO(3)` 即可进入 Codex 层；首次初始化的旋钮 B 按压依次为 `TO(1)`、`TO(2)`、`TO(3)`。
-- L3 左上方键按住 1 秒只退出 L0；短按松开执行第四页所配动作，默认无动作。左下角直接执行第四页配置，可持续按住，不再强制退出；普通层不强占这两个物理按键。
-- OLED：普通 L0–L2 空闲居中显示 1/2/3，实际 USB 输出临时替换数字；L3 进入先显示 Logo+CODEX 约 1 秒，有任务灯分配则六 AG 状态，无任务则保留 Logo，不跟随 RGB 全灭而关屏。USB 挂起/一小时静默仍关闭。全部留边、包含默认层，无旧功能名或 REQUESTED 弹窗，见 `oled.md`。
+`DYNAMIC_KEYMAP_LAYER_COUNT=4`、`VIA_VISIBLE_LAYER_COUNT=4`、`POC_CODEX_LAYER=0`，无第五层。L0 五处为 R1C1、R1C4、A/B 按下、R4C1；全部直通 QMK，无长按定时、短按重放或退出白光。其余原生映射固定，见 [键位图](keymap.md)。
 
-## 启动流程和 USB 身份
+推荐 Codex 的左下角配 `MO(1)`：按住普通 L1、松开 Codex；普通层配 `TO(0)` 返回。可用 `TO(1/2/3)` 常驻普通层。保留 QMK 原生高层优先规则，不引入低层强制覆盖引擎。普通透明键继承普通 L1 而不是原生 L0，源层缓存负责跨层松开。
+
+## 启动与 USB
 
 ```text
-上电 / 插 USB
- ├─ 10 秒内收到有效 VIA 命令 → 锁定 VIA 身份，直到断电
- └─ 10 秒内没有 VIA 命令 → 复位进入 Codex 身份，默认 L3
-       ├─ L0–L2：普通键盘 HID，读取 VIA 配置
-       └─ L3：AG / ACT / ENC / JOY，固定 Codex 表
+真正上电 → 普通 L1 / VIA WAITTING
+ ├─ 10 秒内有效 VIA 命令 → VIA 身份锁定直到断电
+ └─ 没有 VIA 命令 → soft reset → Codex USB 身份，默认 L0
 ```
 
 | | VIA 身份 | Codex 身份 |
 |---|---|---|
 | VID:PID | `D010:1601` | `303A:8360` |
-| 厂商 / 产品名 | DOIO / KB16-01 | Work Louder / Codex Micro |
-| Raw HID | `FF60:0061`，32 字节，无 Report ID | `FF00:0001`，Report ID 6，64 字节 |
-| Raw HID 用途 | VIA 读写四页配置 | Codex Channel 2 JSON-RPC |
+| 厂商 / 产品 | DOIO / KB16-01 | Work Louder / Codex Micro |
+| Raw HID | `FF60:0061`，32 字节，无 ID | `FF00:0001`，Report ID 6，64 字节 |
+| 通信 | VIA 四页读写 | Codex Channel 2 JSON-RPC |
 
-键盘 HID 在两种身份下保留。**切层不会改变 USB 身份**：VIA 已锁定时，进入第四层仍不会向 Codex 发送可用的专用 HID 事件。需要断电重插，不连接 VIA，等待 10 秒进入 Codex 身份后使用 L3。
+- 有效协议查询即可锁定，错误长度、未知 ID、越界层不得锁定；只打开页面或串口不算。
+- 切层不改变 USB 身份。VIA 锁定时在 L0 也不能使用 Codex 接口；须断电，让窗口超时。
+- 模式标记在 `BKP->DR9`，保留 bootloader 的 `DR10`；超时软复位，不停留 DFU。
+- Codex 接收含 ID 的 64 字节及去 ID 的 63 字节；控制 SET_REPORT 入队后主循环解析，不在中断写 EEPROM/解析 JSON。无 Mapper/Channel 3 或 Input `fs.*`。
+- RPC `device.status.layer_index` 为实际 QMK 层 + 1，1=Codex、2/3/4=普通层。
 
-- 窗口从 `keyboard_post_init_user()` 开始；有效协议版本查询即可锁定，错误长度、未知 ID 和越界层不锁定。
-- 模式标志使用 `BKP->DR9`，不得占用 bootloader 的 `DR10`；无电池断电后清除。
-- 超时调用 `soft_reset_keyboard()` 重新枚举，不停留 DFU。
+## 配置与显示
 
-## Codex 固定键位（Layer 3）
+十秒内用 VIA 读取后可一直编辑；第一页编辑指定五处，第二至第四页编辑普通整层。改完断电重插、不连 VIA，十秒后进入 Codex，继续使用保存的配置。[完整方法及迁移](codex-via-keys.md)。
 
-```text
-┌────────┬────────┬────────┬────────┐
-│ VIA1   │ AG00   │ AG01   │ VIA2   │   旋钮 A（左上）= 摇杆 X
-│ 长按1s │        │        │        │   VIA1 长按回 L0
-├────────┼────────┼────────┼────────┤
-│ AG02   │ AG03   │ AG04   │ AG05   │   旋钮 B（右上）= 摇杆 Y
-├────────┼────────┼────────┼────────┤
-│ ACT06  │ ACT07  │ ACT08  │ ACT09  │   旋钮 C（下方）= 编码器
-├────────┼────────┼────────┼────────┤
-│ VIA5   │ ACT10  │ ACT11  │ ACT12  │
-│        │    MIC 两个半键 │        │
-└────────┴────────┴────────┴────────┘
-```
+普通层 OLED 为 2/3/4；Codex 为 Logo/任务页。普通 HID 输出临时显示键名，松开约 900 ms 恢复；安全边距、六格状态、任务全灭不关屏、一小时空闲/心跳续时不变。RGB 仍遵循宿主原色及既定微调，第四排环境 LED12–15 不变；不再有专用退出白光。
 
-- 旋钮 A：逆/顺 = 摇杆左/右；旋钮 B：逆/顺 = 下/上；两者按下执行第四页相应位置的 VIA 配置。
-- 旋钮 C：逆/顺/按下 = `ENC_CC / ENC_CW / ENC_SW`。
-- 旋钮方向是脉冲模拟，不是连续模拟摇杆。
-- 六个 AG 独立任务灯；普通 ACT 无环境提示时按住白光、平时灭。环境提示仍覆盖第四排 LED 12–15（VIA5、ACT10/ACT11/ACT12），录音海绿常亮、白色处理 0–100% 呼吸、蓝色运行 0–10% 呼吸，跟随宿主速度。左上切层键白光移到 LED 0，右上灭，左下无新增白光；完整规则见 [灯光](lighting.md)。
-- 进入 L3 临时启用 Codex 灯光，离开恢复普通层 RGB 开关/效果，不额外写 EEPROM。
+## 旧配置与构建
 
-## VIA 使用与旧配置升级
-
-1. 刷前先导出 VIA 配置，保留官方回退镜像。
-2. 提前在 <https://usevia.app> 启用 Design 并加载 `firmware/via/kb16_codex_via.json`，断电上电后 10 秒内授权 `D010:1601` 并成功读取键位。锁定后可一直编辑，不必在 10 秒内改完。
-3. 编辑 L0–L2 的按键、旋钮方向和按压；给需要的返回键配置 `TO(3)`。
-4. 第四页仅五个自定义位置会执行配置；其余键与旋转保存/读回但不执行。首次升级会将新开放五处清空一次，之后配置会保留。
-5. 写入完成后断电重插，不连接 VIA；10 秒后 Codex 身份默认 L3。开发版长按左上方键 1 秒进 L0，普通层继续使用保存的改键；已发布 0.4.9 仍用左下角退出。
-
-矩阵为 4×5：16 方键在前四列，三旋钮按压为 `[0,4] [1,4] [2,4]`，`[3,4]` 无实体键。
-
-五层升级为四层时保持旧动态键位、编码器和宏的 EEPROM 起址；用未使用空间保留地址，并非保留第五层。一次性把普通 L0–L2 按键/编码器里目标为旧 L4 的 `TO/MO/DF/PDF/TG/OSL/TT/LT/LM` 改为目标 L3。其他键值、第四页和宏不重置，后续 VIA 编辑不重复覆盖。
-
-开发版 0.5.0 另将新开放五处清空一次，复用现有 8 字节用户区第二个迁移标记，其他第四页数据、普通层、encoder map 和宏不变；后续配置不再清空，详见 [迁移说明](codex-via-keys.md)。
-
-这些迁移不替代备份。QMK/VIA 自身的配置有效性判断仍可能在不同构建或恢复配置时重置数据；导入旧五层布局前应调整旧 L4 目标，迁移不会在每次导入后重复执行。
-
-## 构建与 core patch
+旧 L3→新 L0，旧 L0/L1/L2→新 L1/L2/L3，包括键位、encoder map 和层动作目标；已有五处不再清空。宏、EEPROM 起址及容量不变，新默认不旋转。刷前备份，导入旧顺序布局前自己转换；不保证断电中断迁移或任意降级升级安全。
 
 ```bash
 export QMK_HOME=~/qmk_firmware
@@ -88,21 +52,6 @@ export QMK_HOME=~/qmk_firmware
 qmk compile -kb doio/kb16/rev2 -km codex_micro_via_v1
 ```
 
-基线固定为 QMK `f5db962110615fd263c3ebf9f0402e7c2b08fbe4`。产物仅保存在仓库外；当前构建体积、SHA-256 和验收步骤见 [开发](development.md)。
+固定 QMK `f5db962110615fd263c3ebf9f0402e7c2b08fbe4`。core patch 包括 USB 双描述符、报告边界/控制队列、VIA 可见层数、WS2812 PWM DMA，以及仅当前双模式启用的普通层透明继承隔离；未改 QMK layer_on/off/invert/xor 的标准语义。
 
-完整替换 patch 包括 USB 双描述符、ChibiOS Raw HID 报告边界和控制请求队列、VIA 可见层数、WS2812 PWM DMA 事件。VIA 32 字节与 Codex 64 字节在两种身份下独立处理。Codex 接收带 ID 的 64 字节和去 ID 的 63 字节，不包含 Mapper/Channel 3 或 Input `fs.*`。
-
-## 验证边界与恢复
-
-开发版 69 组固件检查、13 项打包测试及 QMK 编译通过，覆盖五处动态路由/迁移、左上退出、左下长按不退出、OLED 与布局图。旧四层版的“第四页全部不执行”已被五处例外替代；流水线测试版 0.5.0 已刷入并返回版本和默认 L3，但不代表 VIA 网页和实体新功能已全部验收。
-
-历史：`0.2.0-qmk` 已于 2026-10-30 通过 RET/DFU 刷入，四项 RPC 和八组灯光目视通过；该版是五层且录音仍快闪，不能视为本次 L3、OLED 和录音常亮已实测。
-
-官方回退镜像：
-
-```text
-/Users/chenzhuyu/Downloads/海康威视/刷固件/2351080960doio-kb16_via（刷3.0）.bin
-SHA-256 0d1f21580b81d88f0e9e4a1bb87ae5a7a96f72677d12864651b6a0624cccac01
-```
-
-进入 bootloader：断 USB 后拆机，接回 USB 并先启动刷写等待，再短按 PCB 内部 RESET 并松开，捕获 `1EAF:0003`。旧 RET 叫法不代表外壳上有外露复位键。仅按 [使用与刷写](usage.md) 操作，不改 bootloader 或读保护；下载完整后先核验版本，不因复位返回 `74` 就重复下载。正常冷启动验收不按任何复位键，不开 VIA。
+本地构建只作开发验证，正式镜像由 GitHub Actions 生成；本次按用户要求在验证后提交推送，不创建 Release、不刷机。历史 CI/实机记录、官方回退镜像和哈希见 [开发](development.md)，拆机使用内部 RESET 的方法见 [使用与刷写](usage.md)。

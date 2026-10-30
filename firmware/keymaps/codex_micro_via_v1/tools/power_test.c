@@ -83,7 +83,7 @@ static void test_host_off_priority(void) {
     assert(poc_power_should_sleep());
     input_idle = 0;
     assert(poc_power_should_sleep());
-    layer_state = 1;
+    layer_state = 1UL << POC_NORMAL_FIRST_LAYER;
     assert(!poc_power_should_sleep());
     layer_state = 1UL << POC_CODEX_LAYER;
     assert(poc_power_should_sleep());

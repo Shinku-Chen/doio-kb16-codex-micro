@@ -82,7 +82,7 @@ def check_codex_layout_artwork(positions):
         for group in keys + knobs:
             matrix = group.attrib["data-matrix"]
             row, column = map(int, matrix.split(","))
-            expected = "LAYER_CYCLE" if matrix == "0,0" else defaults[row * 5 + column]
+            expected = defaults[row * 5 + column]
             assert group.attrib["data-keycode"] == expected
             assert group.attrib.get("data-via-slot") == custom.get(matrix)
             horizontal, vertical = positions[matrix]
@@ -97,7 +97,7 @@ def check_codex_layout_artwork(positions):
                 assert float(circle.attrib["cy"]) == 90 + vertical * 64 + 30
                 index = int(group.attrib["data-index"])
                 assert (group.attrib["data-ccw"], group.attrib["data-cw"]) == turns[index]
-    print("PASS: both SVG layouts match the five VIA positions, top-left exit, native controls, LED indexes and VIA physical coordinates", flush=True)
+    print("PASS: both SVG layouts match all five direct VIA keys, native controls, LED indexes and VIA physical coordinates", flush=True)
 
 
 def check_power_config():
@@ -113,7 +113,10 @@ def check_power_config():
 _Static_assert(OLED_TIMEOUT == 0 && RGB_MATRIX_TIMEOUT == 0, "native idle timers must not bypass shared host-aware power policy");
 _Static_assert(POC_IDLE_SLEEP_MS == 3600000UL, "shared idle fallback must be one hour");
 _Static_assert(POC_VIA_WINDOW_MS == 10000, "VIA startup window must be ten seconds");
-_Static_assert(POC_LAYER_KEY_HOLD_MS == 1000, "Codex exit hold must be one second");
+_Static_assert(POC_CODEX_LAYER == 0 && POC_NORMAL_FIRST_LAYER == 1 && POC_VIA_LAYER_COUNT == 4, "Codex must be the first of four VIA pages");
+#ifdef POC_LAYER_KEY_HOLD_MS
+#error No fixed long-hold exit is allowed
+#endif
 """, text=True, check=True)
     print("PASS: shared one-hour policy owns OLED/RGB timeouts, without native timers bypassing heartbeat renewal; USB suspend remains enabled", flush=True)
 
@@ -122,15 +125,17 @@ with tempfile.TemporaryDirectory(prefix="kb16-tests-") as scratch:
     directory = Path(scratch)
     source = (KEYMAP / "keymap.c").read_text()
     enum = re.search(r"enum poc_keycodes \{.*?\n\};", source, re.S).group()
-    extracted = [enum, "#define POC_LAYER_COUNT (POC_CODEX_LAYER + 1)"]
-    extracted.append(re.search(r"#define POC_FOUR_LAYER_STAMP .*", source).group())
-    extracted.append(re.search(r"#define POC_CUSTOM_KEYS_STAMP .*", source).group())
-    extracted.append(source[source.index("static bool     layer_key_pressed;"):source.index("static void exit_codex_layer")])
+    extracted = [enum, "#define POC_LAYER_COUNT POC_VIA_LAYER_COUNT"]
+    for stamp in ("POC_LAYER_STAMP", "POC_FOUR_LAYER_STAMP", "POC_CUSTOM_KEYS_STAMP", "POC_CODEX_L0_STAMP"):
+        extracted.append(re.search(rf"#define {stamp} .*", source).group())
     for signature in (
-        "static void exit_codex_layer(", "uint16_t keymap_key_to_keycode(",
-        "static void codex_send_action(", "static void poc_send_layer_tap(", "bool process_record_user(", "void matrix_scan_user(",
+        "static bool poc_codex_custom_position(", "static uint16_t poc_codex_custom_keycode(",
+        "uint8_t poc_keymap_base_layer(", "uint16_t keymap_key_to_keycode(",
+        "static void codex_send_action(", "bool process_record_user(", "void matrix_scan_user(",
+        "static void poc_check_layout_stamp(",
         "static uint16_t poc_remap_legacy_codex_keycode(", "static void poc_migrate_four_layer_layout(",
-        "static void poc_migrate_codex_custom_keys(",
+        "static void poc_migrate_codex_custom_keys(", "static uint16_t poc_remap_shifted_layer_keycode(",
+        "static void poc_migrate_codex_l0_layout(",
     ):
         extracted.append(function(source, signature))
     extracted.append(source[source.index("static bool codex_rgb_active;"):source.index("static void codex_rgb_init(void) {")])
@@ -139,7 +144,16 @@ with tempfile.TemporaryDirectory(prefix="kb16-tests-") as scratch:
     extracted.append(function(source, "layer_state_t layer_state_set_user("))
     extracted.append(function(source, "layer_state_t default_layer_state_set_user("))
     extracted.append(function(source, "bool rgb_matrix_indicators_advanced_user("))
+    extracted.append(function(source, "void keyboard_post_init_user("))
     (directory / "keymap_under_test.h").write_text("\n".join(extracted))
+    layer_source = (REPO / "firmware/qmk-core-patches/quantum/action_layer.c").read_text()
+    layers = [function(layer_source, signature) for signature in (
+        "void layer_move(", "void layer_on(", "void layer_off(", "void layer_invert(", "void layer_xor(",
+        "void update_source_layers_cache_impl(", "uint8_t read_source_layers_cache_impl(",
+        "void update_source_layers_cache(", "uint8_t read_source_layers_cache(", "uint8_t layer_switch_get_layer(",
+    )]
+    layers.append(function((QMK / "quantum/quantum.c").read_text(), "uint16_t get_event_keycode("))
+    (directory / "qmk_layers_under_test.h").write_text("\n".join(layers))
     board_source = (QMK / "keyboards/doio/kb16/kb16.c").read_text()
     mode_source = (KEYMAP / "poc_mode.c").read_text()
     (directory / "startup_under_test.h").write_text("\n".join([

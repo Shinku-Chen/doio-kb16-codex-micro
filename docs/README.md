@@ -2,18 +2,18 @@
 
 本仓库是 DOIO KB16-01 Rev2 的 Codex Micro 兼容固件与工具的工作副本。目标是把 16 键 + 3 旋钮 + 128×32 OLED 的 KB16 作为 Codex Micro 控制器使用。
 
-> 测试版 `0.5.0-qmk` 已从 main 流水线构建、校验并刷入，版本和默认 L3 应答正确，未创建 Release。L3 开放五处 VIA 自定义，固定一秒退出移到左上方键，左下角直接执行第四页配置，OLED 显示实际输出；实体改键/切层/OLED 新行为仍待验收，见 [五处改键](codex-via-keys.md)。一小时息屏/按键唤醒仍未实测。刷机需拆外壳按 PCB 内部 RESET，详见 [使用与刷写](usage.md) / [开发记录](development.md)。完整展示见 [中文 README](../README.md) / [English README](../README.en.md)。
+> 当前开发版 `0.6.0-qmk`：Codex 位于第一页 L0，普通 VIA 为 L1–L3；五处直接自定义，取消固定长按退出，自己设置 MO/TO 切层。旧配置与层动作目标一次迁移，先备份。73 组离线检查、13 项打包测试及本地编译通过，本版尚未刷入，设备仍是 0.5.0；刷写使用对应提交的 main 流水线 Artifact。详见 [五处改键](codex-via-keys.md)、[开发](development.md)。正式镜像由流水线生成，刷机需拆外壳按内部 RESET，见 [使用](usage.md)。展示见 [中文 README](../README.md) / [English README](../README.en.md)。
 
 ## 快速开始
 
 1. 确认硬件：DOIO KB16-01 **Rev2**（APM32F103CBT6），不是 Rev1 或无线版。
 2. 正式固件从 [Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases) 下载流水线附件，核对来源及 SHA-256 后刷入；本地构建只用于开发（见 `development.md`、`usage.md`）。
 3. 安装并登录 ChatGPT/Codex 桌面版，打开 Settings → Codex Micro 配置 AG 键、摇杆、旋钮、麦克风。
-4. 用 VIA 修改 L0–L2；开发版 0.5.0 允许第四页指定五处执行 VIA 配置，其余原生 Codex 布局仍固定。已发布 0.4.9 的第四页仍只作占位，本仓库不包含 Mapper。
+4. 开机十秒内让 VIA 读取，第一页面 L0 修改五处自定义，第二至第四页修改普通 L1–L3。建议 L0 配 MO(1) 按住普通 L1，松开恢复；普通层配 TO(0) 返回 Codex。本仓库不包含 Mapper。
 
 ## 文档索引
 
-- `codex-via-keys.md` — 0.5.0 开发版五处 Codex 层 VIA 自定义、长短按、升级迁移和 OLED 提示
+- `codex-via-keys.md` — 0.6.0 Codex L0 五处直接 VIA 自定义、自配 MO/TO、升级迁移和 OLED 提示
 - `firmware-audit-2026-10-30.md` — 当前固件跨仓库检查、离线复现、构建结果与通信诊断修正
 - `lighting.md` — GPT 原色、Idle 常亮 5%、环境四灯同步呼吸、录音海绿常亮、AG 灯效和完整对照表
 - `via-dual-mode.md` — QMK + VIA 双模式：USB 身份、10 秒窗口、层模型、构建

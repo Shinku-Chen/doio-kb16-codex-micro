@@ -472,7 +472,7 @@ static void handle_request(const char *json) {
         send_result(has_id ? id : NULL, "{\"version\":\"" CODEX_MICRO_VERSION "\"}");
     } else if (strcmp(method, "device.status") == 0) {
         uint8_t active_layer = get_highest_layer(layer_state | default_layer_state);
-        uint8_t host_layer = active_layer == POC_CODEX_LAYER ? 1 : active_layer + 2;
+        uint8_t host_layer = active_layer + 1;
         char status[160];
         snprintf(status, sizeof(status), "{\"version\":\"" CODEX_MICRO_VERSION "\",\"profile_index\":0,\"layer_index\":%u,\"battery\":100,\"is_charging\":false}", host_layer);
         send_result(has_id ? id : NULL, status);

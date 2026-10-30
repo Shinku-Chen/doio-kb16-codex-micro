@@ -391,7 +391,7 @@ static void test_act_feedback_and_layers(void) {
     render();
     assert(led_color(8) == 0);
     memset(colors, 17, sizeof(colors));
-    layer_state = 1;
+    layer_state = 1UL << POC_NORMAL_FIRST_LAYER;
     render();
     for (uint8_t index = 0; index < RGB_MATRIX_LED_COUNT; ++index) {
         assert(led_color(index) == 0x111111);

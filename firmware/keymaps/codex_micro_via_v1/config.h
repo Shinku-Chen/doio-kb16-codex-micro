@@ -28,7 +28,7 @@
 #define DYNAMIC_KEYMAP_ENCODER_EEPROM_ADDR (DYNAMIC_KEYMAP_EEPROM_ADDR + POC_EEPROM_RESERVED_LAYER_SLOTS * MATRIX_ROWS * MATRIX_COLS * 2)
 #define DYNAMIC_KEYMAP_MACRO_EEPROM_ADDR (DYNAMIC_KEYMAP_ENCODER_EEPROM_ADDR + POC_EEPROM_RESERVED_LAYER_SLOTS * NUM_ENCODERS * 2 * 2)
 
-// User EEPROM holds the layout stamp and the shared layer/custom-key migration stamp.
+// User EEPROM holds the layout stamp and the shared layer/custom-key/order migration stamp.
 #define EECONFIG_USER_DATA_SIZE 8
 
 // PA10 is TIM1_CH3. Use its channel DMA request on DMA1 stream 6 so the

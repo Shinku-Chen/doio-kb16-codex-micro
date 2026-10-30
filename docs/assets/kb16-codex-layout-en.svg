@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="480" height="650" viewBox="0 0 480 650" role="img" aria-labelledby="title description">
   <title id="title">KB16 · Codex key map</title>
-  <desc id="description">Development 0.5.0 L3: six AG and seven ACT keys stay fixed. VIA page 4 sets the top-left tap, top-right key, A/B clicks and bottom-left key. Hold top-left one second to exit without its tap; bottom-left is a direct hold-capable key. A/B turns and encoder C stay native. VIA1–5 are position labels, not layers. Appearance is schematic; colors are not live LEDs.</desc>
+  <desc id="description">0.6.0 development L0: six AG and seven ACT controls remain native. All five spare positions execute first-page VIA mappings directly, without a fixed exit hold. Configure MO(1) for momentary ordinary L1 and TO(0) to return. A/B turns are X/Y, C is the encoder. Colors are not live LED colors.</desc>
   <style>
     text { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #17243c; }
     .mono { font-family: Menlo, Consolas, monospace; }
@@ -10,16 +10,14 @@
   </style>
   <rect width="480" height="650" rx="18" fill="#ffffff"/>
   <text x="24" y="35" font-size="25" class="strong">KB16 · Codex key map</text>
-  <text x="24" y="59" font-size="14" class="muted">0.5.0 dev · L3 / page 4 · Five VIA positions</text>
+  <text x="24" y="59" font-size="14" class="muted">0.6.0 dev · L0 / page 1 · Five VIA positions</text>
   <rect x="12" y="76" width="456" height="302" rx="18" fill="#f2f5fa" stroke="#d4dde9"/>
-  <g data-control="key" data-matrix="0,0" data-keycode="LAYER_CYCLE" data-led="0" data-via-slot="1">
-    <title>VIA1: custom tap, hold one second to L0</title>
-    <rect x="24" y="90" width="60" height="60" rx="9" fill="#fff1d6" stroke="#dca54d"/>
-    <text x="54" y="107" font-size="12" class="center muted">TAP</text>
-    <text x="54" y="128" font-size="18" class="center mono strong">VIA1</text>
-    <text x="54" y="143" font-size="11.5" class="center mono">1s → L0</text>
-  </g>
-  <g data-control="key" data-matrix="0,1" data-keycode="AG00" data-led="1">
+  <g data-control="key" data-matrix="0,0" data-keycode="KC_NO" data-led="0" data-via-slot="1">
+    <title>VIA1: page 1 custom key, unassigned by default</title>
+    <rect x="24" y="90" width="60" height="60" rx="9" fill="#eef0ff" stroke="#9da9de"/>
+    <text x="54" y="110" font-size="14" class="center mono muted">VIA</text>
+    <text x="54" y="137" font-size="27" class="center mono strong">01</text>
+  </g>  <g data-control="key" data-matrix="0,1" data-keycode="AG00" data-led="1">
     <title>AG00</title>
     <rect x="88" y="90" width="60" height="60" rx="9" fill="#e6f6f1" stroke="#8dcdb7"/>
     <text x="118" y="110" font-size="14" class="center mono muted">AG</text>
@@ -32,7 +30,7 @@
     <text x="182" y="137" font-size="27" class="center mono strong">01</text>
   </g>
   <g data-control="key" data-matrix="0,3" data-keycode="KC_NO" data-led="3" data-via-slot="2">
-    <title>VIA2: page 4 custom key, unassigned by default</title>
+    <title>VIA2: page 1 custom key, unassigned by default</title>
     <rect x="216" y="90" width="60" height="60" rx="9" fill="#eef0ff" stroke="#9da9de"/>
     <text x="246" y="110" font-size="14" class="center mono muted">VIA</text>
     <text x="246" y="137" font-size="27" class="center mono strong">02</text>
@@ -86,7 +84,7 @@
     <text x="246" y="265" font-size="27" class="center mono strong">09</text>
   </g>
   <g data-control="key" data-matrix="3,0" data-keycode="KC_NO" data-led="12" data-via-slot="5">
-    <title>VIA5: page 4 custom key, unassigned by default</title>
+    <title>VIA5: page 1 custom key, unassigned by default</title>
     <rect x="24" y="282" width="60" height="60" rx="9" fill="#eef0ff" stroke="#9da9de"/>
     <text x="54" y="302" font-size="14" class="center mono muted">VIA</text>
     <text x="54" y="329" font-size="27" class="center mono strong">05</text>
@@ -149,7 +147,7 @@
   <text x="42" y="541" font-size="23" class="center strong">C</text>
   <text x="66" y="530" font-size="16" class="strong">Encoder: CCW ENC_CC / CW ENC_CW</text>
   <text x="66" y="550" font-size="12.5" class="muted">Click: ENC_SW</text>
-  <text x="24" y="590" font-size="17" class="strong">Top-left hold 1s → L0 · TO(3) → L3</text>
+  <text x="24" y="590" font-size="17" class="strong">MO(1): hold L1 · TO(0): Codex</text>
   <text x="24" y="615" font-size="13" class="muted">VIA1–5 mark custom positions, not layers. Others stay fixed.</text>
   <text x="24" y="637" font-size="12" class="muted">MIC may be split. Colors indicate key groups, not live LEDs.</text>
 </svg>

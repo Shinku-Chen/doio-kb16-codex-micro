@@ -9,9 +9,9 @@
 #include "keymap_introspection.h"
 
 enum layer_names {
-    _VIA0 = 0,
-    _VIA1,
+    _VIA1 = POC_NORMAL_FIRST_LAYER,
     _VIA2,
+    _VIA3,
     _CODEX = POC_CODEX_LAYER,
 };
 
@@ -42,26 +42,27 @@ enum poc_keycodes {
 #define POC_LAYER_STAMP 0x4B423136UL // "KB16"
 #define POC_FOUR_LAYER_STAMP 0x344C4333UL
 #define POC_CUSTOM_KEYS_STAMP 0x354B4333UL
+#define POC_CODEX_L0_STAMP 0x304C4334UL
 
-/* Layers 0-2 mirror the VIA layout that was saved on the stock firmware.
- * Layer 3 keeps native AG/ACT, joystick axes and encoder controls in flash.
- * Five spare key positions use VIA; top-left retains a one-second exit. */
+/* Layers 1-3 mirror the saved ordinary VIA layouts.
+ * Layer 0 keeps native AG/ACT, joystick axes and encoder controls in flash.
+ * All five spare key positions use VIA without a reserved long hold. */
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
-    [_VIA0] = LAYOUT(
-        KC_ESC, G(KC_W), LSG(KC_A), G(KC_BSPC), TO(0),
-        G(KC_C), G(KC_V), LSG(KC_F), KC_ENT, TO(1),
+    [_VIA1] = LAYOUT(
+        KC_ESC, G(KC_W), LSG(KC_A), G(KC_BSPC), TO(1),
+        G(KC_C), G(KC_V), LSG(KC_F), KC_ENT, TO(2),
         C(KC_D), G(KC_RBRC), C(KC_R), G(KC_F2), KC_MPLY,
         MT(MOD_LGUI, KC_MUTE), G(KC_LBRC), LAG(KC_R), G(KC_Z)),
 
-    [_VIA1] = LAYOUT(
+    [_VIA2] = LAYOUT(
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
-        KC_PASTE, QK_MACRO_0, QK_MACRO_1, KC_ENT, TO(2),
+        KC_PASTE, QK_MACRO_0, QK_MACRO_1, KC_ENT, TO(3),
         KC_F10, KC_F11, S(KC_F11), KC_F9, KC_TRNS,
         KC_TRNS, KC_TRNS, KC_F8, KC_TRNS),
 
-    [_VIA2] = LAYOUT(
+    [_VIA3] = LAYOUT(
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
-        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, TO(3),
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, TO(0),
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
         KC_TRNS, MS_BTN1, MS_BTN1, MS_BTN1),
 
@@ -74,17 +75,17 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 #ifdef ENCODER_MAP_ENABLE
 const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
-    [_VIA0] = {
+    [_VIA1] = {
         ENCODER_CCW_CW(KC_BRID, KC_BRIU),
         ENCODER_CCW_CW(KC_VOLD, KC_VOLU),
         ENCODER_CCW_CW(KC_MPRV, KC_MNXT),
     },
-    [_VIA1] = {
+    [_VIA2] = {
         ENCODER_CCW_CW(KC_TRNS, KC_TRNS),
         ENCODER_CCW_CW(KC_TRNS, KC_TRNS),
         ENCODER_CCW_CW(KC_TRNS, KC_TRNS),
     },
-    [_VIA2] = {
+    [_VIA3] = {
         ENCODER_CCW_CW(KC_TRNS, KC_TRNS),
         ENCODER_CCW_CW(KC_TRNS, KC_TRNS),
         ENCODER_CCW_CW(MS_BTN1, MS_BTN1),
@@ -98,13 +99,7 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
 };
 #endif
 
-#define POC_LAYER_COUNT (POC_CODEX_LAYER + 1)
-
-static bool     layer_key_pressed;
-static bool     layer_key_fired;
-static uint16_t layer_key_at;
-static uint16_t layer_key_tap_code;
-static bool     layer_key_replaying;
+#define POC_LAYER_COUNT POC_VIA_LAYER_COUNT
 
 static bool poc_codex_custom_position(keypos_t key) {
     return (key.row == 0 && (key.col == 0 || key.col == 3 || key.col == 4)) ||
@@ -119,24 +114,21 @@ static uint16_t poc_codex_custom_keycode(keypos_t key) {
     return keycode;
 }
 
-static void exit_codex_layer(void) {
-    default_layer_set(1UL);
-    layer_move(0);
+uint8_t poc_keymap_base_layer(layer_state_t state) {
+    layer_state_t normal_layers = ((1UL << POC_VIA_LAYER_COUNT) - 1) & ~(1UL << POC_CODEX_LAYER);
+    return state & normal_layers ? POC_NORMAL_FIRST_LAYER : POC_CODEX_LAYER;
 }
 
-// Layers 0-2 use VIA data; layer 3 uses VIA only at the five custom positions.
+// Layers 1-3 use VIA data; layer 0 uses VIA only at the five custom positions.
 // QMK's own keymap_key_to_keycode() is weak, so this replaces it wholesale.
 uint16_t keymap_key_to_keycode(uint8_t layer, keypos_t key) {
     if (layer >= POC_VIA_LAYER_COUNT) {
         return KC_NO;
     }
-    if (layer_key_replaying && key.row == POC_LAYER_KEY_ROW && key.col == POC_LAYER_KEY_COL) {
-        return layer_key_tap_code;
-    }
     if (layer == POC_CODEX_LAYER) {
         if (key.row < MATRIX_ROWS && key.col < MATRIX_COLS) {
             if (poc_codex_custom_position(key)) {
-                return key.row == POC_LAYER_KEY_ROW && key.col == POC_LAYER_KEY_COL ? LAYER_CYCLE : poc_codex_custom_keycode(key);
+                return poc_codex_custom_keycode(key);
             }
             return keycode_at_keymap_location_raw(layer, key.row, key.col);
         }
@@ -169,48 +161,8 @@ static void codex_send_action(codex_micro_action_t action, bool pressed) {
     codex_micro_send_action_key(action, pressed);
 }
 
-static void poc_send_layer_tap(keyrecord_t *record) {
-    if (layer_key_tap_code == KC_NO) {
-        return;
-    }
-    keyrecord_t replay = *record;
-    replay.event.key = (keypos_t){.row = POC_LAYER_KEY_ROW, .col = POC_LAYER_KEY_COL};
-#if defined(COMBO_ENABLE) || defined(REPEAT_KEY_ENABLE)
-    replay.keycode = layer_key_tap_code;
-#endif
-#ifndef NO_ACTION_TAPPING
-    replay.tap.count = 1;
-    replay.tap.interrupted = false;
-#endif
-    layer_key_replaying = true;
-    replay.event.pressed = true;
-    process_record(&replay);
-    replay.event.pressed = false;
-    process_record(&replay);
-    layer_key_replaying = false;
-}
-
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
-        case LAYER_CYCLE:
-            // L3 左上角长按离开 Codex；普通层由 VIA 配置 TO(0)..TO(3)。
-            if (record->event.pressed) {
-                layer_key_pressed  = true;
-                layer_key_fired    = false;
-                layer_key_at       = timer_read();
-                layer_key_tap_code = poc_codex_custom_keycode((keypos_t){.row = POC_LAYER_KEY_ROW, .col = POC_LAYER_KEY_COL});
-            } else {
-                bool short_tap = layer_key_pressed && !layer_key_fired && timer_elapsed(layer_key_at) < POC_LAYER_KEY_HOLD_MS && get_highest_layer(layer_state | default_layer_state) == POC_CODEX_LAYER;
-                bool long_hold = layer_key_pressed && !layer_key_fired && timer_elapsed(layer_key_at) >= POC_LAYER_KEY_HOLD_MS;
-                layer_key_pressed = false;
-                if (long_hold) {
-                    layer_key_fired = true;
-                    exit_codex_layer();
-                } else if (short_tap) {
-                    poc_send_layer_tap(record);
-                }
-            }
-            return false;
         case AG00:
         case AG01:
         case AG02:
@@ -272,11 +224,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 
 void matrix_scan_user(void) {
-    if (layer_key_pressed && !layer_key_fired && timer_elapsed(layer_key_at) >= POC_LAYER_KEY_HOLD_MS) {
-        layer_key_fired = true;
-        exit_codex_layer();
-    }
-
     poc_mode_task();
     codex_micro_task();
 }
@@ -299,18 +246,20 @@ static void poc_check_layout_stamp(void) {
     eeconfig_init();
     uint32_t fresh = POC_LAYER_STAMP;
     eeconfig_update_user_datablock(&fresh, 0, sizeof(fresh));
+    fresh = POC_CODEX_L0_STAMP;
+    eeconfig_update_user_datablock(&fresh, sizeof(uint32_t), sizeof(fresh));
 }
 
 static uint16_t poc_remap_legacy_codex_keycode(uint16_t keycode) {
     if (IS_QK_LAYER_TAP(keycode) && QK_LAYER_TAP_GET_LAYER(keycode) == 4) {
-        return (keycode & 0xF0FFU) | (POC_CODEX_LAYER << 8);
+        return (keycode & 0xF0FFU) | (POC_LEGACY_CODEX_LAYER << 8);
     }
     if (IS_QK_LAYER_MOD(keycode) && QK_LAYER_MOD_GET_LAYER(keycode) == 4) {
-        return (keycode & 0xFE1FU) | (POC_CODEX_LAYER << 5);
+        return (keycode & 0xFE1FU) | (POC_LEGACY_CODEX_LAYER << 5);
     }
     bool layer_action = IS_QK_TO(keycode) || IS_QK_MOMENTARY(keycode) || IS_QK_DEF_LAYER(keycode) || IS_QK_PERSISTENT_DEF_LAYER(keycode) || IS_QK_TOGGLE_LAYER(keycode) || IS_QK_ONE_SHOT_LAYER(keycode) || IS_QK_LAYER_TAP_TOGGLE(keycode);
     if (layer_action && (keycode & 0x1FU) == 4) {
-        return (keycode & 0xFFE0U) | POC_CODEX_LAYER;
+        return (keycode & 0xFFE0U) | POC_LEGACY_CODEX_LAYER;
     }
     return keycode;
 }
@@ -318,11 +267,11 @@ static uint16_t poc_remap_legacy_codex_keycode(uint16_t keycode) {
 static void poc_migrate_four_layer_layout(void) {
     uint32_t stamp = 0;
     eeconfig_read_user_datablock(&stamp, sizeof(uint32_t), sizeof(stamp));
-    if (stamp == POC_FOUR_LAYER_STAMP || stamp == POC_CUSTOM_KEYS_STAMP) {
+    if (stamp == POC_FOUR_LAYER_STAMP || stamp == POC_CUSTOM_KEYS_STAMP || stamp == POC_CODEX_L0_STAMP) {
         return;
     }
 
-    for (uint8_t layer = 0; layer < POC_NORMAL_LAYER_COUNT; ++layer) {
+    for (uint8_t layer = 0; layer < POC_LEGACY_CODEX_LAYER; ++layer) {
         for (uint8_t row = 0; row < MATRIX_ROWS; ++row) {
             for (uint8_t col = 0; col < MATRIX_COLS; ++col) {
                 uint16_t keycode = dynamic_keymap_get_keycode(layer, row, col);
@@ -352,17 +301,67 @@ static void poc_migrate_four_layer_layout(void) {
 static void poc_migrate_codex_custom_keys(void) {
     uint32_t stamp = 0;
     eeconfig_read_user_datablock(&stamp, sizeof(uint32_t), sizeof(stamp));
-    if (stamp == POC_CUSTOM_KEYS_STAMP) {
+    if (stamp == POC_CUSTOM_KEYS_STAMP || stamp == POC_CODEX_L0_STAMP) {
         return;
     }
     for (uint8_t row = 0; row < MATRIX_ROWS; ++row) {
         for (uint8_t column = 0; column < MATRIX_COLS; ++column) {
             if (poc_codex_custom_position((keypos_t){.row = row, .col = column})) {
-                dynamic_keymap_set_keycode(POC_CODEX_LAYER, row, column, KC_NO);
+                dynamic_keymap_set_keycode(POC_LEGACY_CODEX_LAYER, row, column, KC_NO);
             }
         }
     }
     stamp = POC_CUSTOM_KEYS_STAMP;
+    eeconfig_update_user_datablock(&stamp, sizeof(uint32_t), sizeof(stamp));
+}
+
+static uint16_t poc_remap_shifted_layer_keycode(uint16_t keycode) {
+    if (IS_QK_LAYER_TAP(keycode)) {
+        uint8_t layer = QK_LAYER_TAP_GET_LAYER(keycode);
+        return layer < POC_VIA_LAYER_COUNT ? (keycode & 0xF0FFU) | (((layer + 1) % POC_VIA_LAYER_COUNT) << 8) : keycode;
+    }
+    if (IS_QK_LAYER_MOD(keycode)) {
+        uint8_t layer = QK_LAYER_MOD_GET_LAYER(keycode);
+        return layer < POC_VIA_LAYER_COUNT ? (keycode & 0xFE1FU) | (((layer + 1) % POC_VIA_LAYER_COUNT) << 5) : keycode;
+    }
+    bool layer_action = IS_QK_TO(keycode) || IS_QK_MOMENTARY(keycode) || IS_QK_DEF_LAYER(keycode) || IS_QK_PERSISTENT_DEF_LAYER(keycode) || IS_QK_TOGGLE_LAYER(keycode) || IS_QK_ONE_SHOT_LAYER(keycode) || IS_QK_LAYER_TAP_TOGGLE(keycode);
+    uint8_t layer = keycode & 0x1FU;
+    return layer_action && layer < POC_VIA_LAYER_COUNT ? (keycode & 0xFFE0U) | ((layer + 1) % POC_VIA_LAYER_COUNT) : keycode;
+}
+
+static void poc_migrate_codex_l0_layout(void) {
+    uint32_t stamp = 0;
+    eeconfig_read_user_datablock(&stamp, sizeof(uint32_t), sizeof(stamp));
+    if (stamp == POC_CODEX_L0_STAMP) {
+        return;
+    }
+    for (uint8_t row = 0; row < MATRIX_ROWS; ++row) {
+        for (uint8_t column = 0; column < MATRIX_COLS; ++column) {
+            uint16_t keycodes[POC_VIA_LAYER_COUNT];
+            for (uint8_t layer = 0; layer < POC_VIA_LAYER_COUNT; ++layer) {
+                keycodes[layer] = dynamic_keymap_get_keycode(layer, row, column);
+            }
+            for (uint8_t layer = 0; layer < POC_VIA_LAYER_COUNT; ++layer) {
+                uint8_t source = (layer + POC_VIA_LAYER_COUNT - 1) % POC_VIA_LAYER_COUNT;
+                dynamic_keymap_set_keycode(layer, row, column, poc_remap_shifted_layer_keycode(keycodes[source]));
+            }
+        }
+    }
+#ifdef ENCODER_MAP_ENABLE
+    for (uint8_t encoder = 0; encoder < NUM_ENCODERS; ++encoder) {
+        for (uint8_t direction = 0; direction < NUM_DIRECTIONS; ++direction) {
+            uint16_t keycodes[POC_VIA_LAYER_COUNT];
+            for (uint8_t layer = 0; layer < POC_VIA_LAYER_COUNT; ++layer) {
+                keycodes[layer] = dynamic_keymap_get_encoder(layer, encoder, direction != 0);
+            }
+            for (uint8_t layer = 0; layer < POC_VIA_LAYER_COUNT; ++layer) {
+                uint8_t source = (layer + POC_VIA_LAYER_COUNT - 1) % POC_VIA_LAYER_COUNT;
+                dynamic_keymap_set_encoder(layer, encoder, direction != 0, poc_remap_shifted_layer_keycode(keycodes[source]));
+            }
+        }
+    }
+#endif
+    stamp = POC_CODEX_L0_STAMP;
     eeconfig_update_user_datablock(&stamp, sizeof(uint32_t), sizeof(stamp));
 }
 
@@ -374,15 +373,17 @@ void keyboard_post_init_user(void) {
     poc_check_layout_stamp();
     poc_migrate_four_layer_layout();
     poc_migrate_codex_custom_keys();
+    poc_migrate_codex_l0_layout();
     codex_micro_init();
     oled_controller_init();
 #ifdef RGB_MATRIX_ENABLE
     codex_rgb_init();
 #endif
+    default_layer_set(1UL << POC_CODEX_LAYER);
     if (poc_mode_is_codex()) {
         layer_move(POC_CODEX_LAYER);
     } else {
-        layer_move(0);
+        layer_move(POC_NORMAL_FIRST_LAYER);
         poc_mode_start_window();
     }
 }
@@ -439,10 +440,6 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
         return true;
     }
     codex_micro_rgb_indicators(led_min, led_max);
-    // 左上角切层键：按住期间点亮（LED 索引 0 = R1C1）。
-    if (layer_key_pressed && get_highest_layer(layer_state | default_layer_state) == POC_CODEX_LAYER && POC_LAYER_KEY_LED >= led_min && POC_LAYER_KEY_LED < led_max) {
-        RGB_MATRIX_INDICATOR_SET_COLOR(POC_LAYER_KEY_LED, 255, 255, 255);
-    }
     return true;
 }
 #endif

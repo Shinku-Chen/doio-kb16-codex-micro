@@ -179,12 +179,12 @@ static void keyboard(uint8_t mods, uint8_t key) {
 }
 
 static void test_via_idle_digits(void) {
-    for (uint8_t layer = 0; layer < 3; ++layer) {
+    for (uint8_t layer = POC_NORMAL_FIRST_LAYER; layer < POC_VIA_LAYER_COUNT; ++layer) {
         reset_screen(layer);
         render();
         assert_digit('1' + layer);
         char name[] = "via-1";
-        name[4] += layer;
+        name[4] += layer - POC_NORMAL_FIRST_LAYER;
         save_preview(name);
         assert(screen_writes == 1);
         fake_timer = 5000;
@@ -192,14 +192,14 @@ static void test_via_idle_digits(void) {
         assert(screen_writes == 1);
     }
     layer_state = 0;
-    default_layer_state = 1UL << 1;
+    default_layer_state = 1UL << 2;
     render();
-    assert_digit('2');
-    puts("PASS: VIA L0-L2 show centered 1/2/3 with safe margins, including default layers and unchanged-frame suppression");
+    assert_digit('3');
+    puts("PASS: VIA L1-L3 show centered 2/3/4 with safe margins, including default layers and unchanged-frame suppression");
 }
 
 static void test_codex_splash_and_tasks(void) {
-    reset_screen(3);
+    reset_screen(POC_CODEX_LAYER);
     render();
     assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
     save_preview("codex-logo");
@@ -223,17 +223,17 @@ static void test_codex_splash_and_tasks(void) {
     feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"e\":0}]}");
     render();
     assert(screen_writes == before + 1);
-    layer_state = 1;
+    layer_state = 1UL << POC_NORMAL_FIRST_LAYER;
     render();
-    assert_digit('1');
-    layer_state = 1UL << 3;
+    assert_digit('2');
+    layer_state = 1UL << POC_CODEX_LAYER;
     render();
     assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
     puts("PASS: Codex entry shows the old logo/CODEX then six live AG-derived task states without obsolete popups");
 }
 
 static void test_cindy_task_labels(void) {
-    reset_screen(3);
+    reset_screen(POC_CODEX_LAYER);
     render();
     feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"c\":5009407,\"b\":0.8,\"e\":4,\"s\":0.35},{\"id\":1,\"c\":16752640,\"b\":0.8,\"e\":4},{\"id\":2,\"c\":3524441,\"b\":0.8,\"e\":1},{\"id\":3,\"c\":16729402,\"b\":0.8,\"e\":4},{\"id\":4,\"e\":0},{\"id\":5,\"c\":13633036,\"b\":0.72,\"e\":4}]}");
     fake_timer = OLED_LAYER_SPLASH_MS;
@@ -250,7 +250,7 @@ static void test_cindy_task_labels(void) {
 static void test_generic_task_labels(void) {
     static const uint32_t palette[] = {0xFFF0E6, 0x2F54EB, 0x31B54F, 0xE8A61C, 0xE9293E, 0x9933CC};
     const char *const labels[] = {"1:IDLE", "2:RUN", "3:NEW", "4:WAIT", "5:ERR", "6:OTHR"};
-    reset_screen(3);
+    reset_screen(POC_CODEX_LAYER);
     render();
     for (uint8_t slot = 0; slot < 6; ++slot) {
         char json[160];
@@ -268,7 +268,7 @@ static void test_generic_task_labels(void) {
 }
 
 static void test_keyboard_reports(void) {
-    reset_screen(0);
+    reset_screen(1);
     render();
     keyboard(8, 0);
     keyboard(8, 0x06);
@@ -282,7 +282,7 @@ static void test_keyboard_reports(void) {
     assert_label("GUI+C");
     fake_timer++;
     render();
-    assert_digit('1');
+    assert_digit('2');
     keyboard(3, 0x0C);
     render();
     assert_label("CTRL+SHIFT+I");
@@ -313,7 +313,7 @@ static void test_keyboard_reports(void) {
 }
 
 static void test_media_and_mouse_reports(void) {
-    reset_screen(1);
+    reset_screen(2);
     report_extra_t extra = {.report_id = REPORT_ID_CONSUMER, .usage = 0xE9};
     send_extra(&extra);
     render();
@@ -355,12 +355,12 @@ static void test_media_and_mouse_reports(void) {
     assert_label("MOVE LEFT");
     fake_timer += OLED_KEY_IDLE_MS;
     render();
-    assert_digit('2');
+    assert_digit('3');
     puts("PASS: media/brightness/rotary, system, mouse buttons, wheels and cursor reports use actual emitted usages");
 }
 
 static void test_edges_switches_and_wrap(void) {
-    reset_screen(0);
+    reset_screen(1);
     report_keyboard_t report = {.mods = 255, .keys = {0x2A, 0x4B, 0x4E, 0x39, 0x47, 0x58}};
     send_keyboard(&report);
     render();
@@ -371,9 +371,9 @@ static void test_edges_switches_and_wrap(void) {
     oled_controller_note_input(OLED_INPUT_COUNT, "INVALID", true);
     render();
     assert(screen_writes == before);
-    layer_state = 1UL << 2;
+    layer_state = 1UL << 3;
     render();
-    assert_digit('3');
+    assert_digit('4');
     keyboard(0, 0);
     keyboard(0, 0x04);
     render();
@@ -386,8 +386,8 @@ static void test_edges_switches_and_wrap(void) {
     keyboard(0, 0);
     fake_timer += OLED_KEY_IDLE_MS;
     render();
-    assert_digit('3');
-    reset_screen(0);
+    assert_digit('4');
+    reset_screen(1);
     fake_timer = UINT32_MAX - 200;
     keyboard(0, 0x05);
     keyboard(0, 0);
@@ -396,10 +396,10 @@ static void test_edges_switches_and_wrap(void) {
     assert_label("B");
     fake_timer = 700;
     render();
-    assert_digit('1');
-    reset_screen(0);
+    assert_digit('2');
+    reset_screen(1);
     layer_state = 0;
-    default_layer_state = 1UL << 3;
+    default_layer_state = 1UL << POC_CODEX_LAYER;
     render();
     assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
     keyboard(0, 0x06);
@@ -409,7 +409,7 @@ static void test_edges_switches_and_wrap(void) {
 }
 
 static void test_usb_enqueue_boundary(void) {
-    reset_screen(0);
+    reset_screen(1);
     render();
     unsigned before = screen_writes;
     enqueue_success = false;
@@ -432,14 +432,14 @@ static void test_usb_enqueue_boundary(void) {
 }
 
 static void test_display_power(void) {
-    reset_screen(0);
+    reset_screen(1);
     render();
     assert(display_active);
     unsigned writes = screen_writes;
     fake_timer = 180000;
     render();
     assert(display_active && screen_writes == writes);
-    assert_digit('1');
+    assert_digit('2');
     fake_timer = input_idle = POC_IDLE_SLEEP_MS;
     render();
     assert(!display_active && screen_writes == writes);
@@ -455,7 +455,7 @@ static void test_display_power(void) {
     display_active = false;
     render();
     assert(display_active && screen_writes == writes);
-    assert_digit('1');
+    assert_digit('2');
     puts("PASS: OLED uses one-hour fallback, heartbeat wake and USB suspend/resume without needing a changed display frame");
 }
 
@@ -478,10 +478,10 @@ static void test_codex_host_display_power(void) {
     feed("{\"method\":\"v.oai.rgbcfg\",\"params\":{\"ambient\":{\"b\":0}}}");
     render();
     assert(display_active && poc_power_should_sleep());
-    layer_state = 1;
+    layer_state = 1UL << POC_NORMAL_FIRST_LAYER;
     render();
     assert(display_active);
-    assert_digit('1');
+    assert_digit('2');
     layer_state = 1UL << POC_CODEX_LAYER;
     render();
     assert(display_active && poc_power_should_sleep());
@@ -547,7 +547,7 @@ static void test_empty_codex_logo(void) {
 }
 
 static void test_visible_codex_entry(void) {
-    reset_screen(0);
+    reset_screen(1);
     render();
     feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"c\":5009407,\"b\":0,\"e\":1}]}");
     layer_state = 1UL << POC_CODEX_LAYER;
@@ -607,9 +607,9 @@ static void test_codex_custom_output(void) {
     fake_timer += OLED_KEY_IDLE_MS;
     render();
     assert(memcmp(screen, tasks, sizeof(screen)) == 0);
-    layer_state = 1;
+    layer_state = 1UL << POC_NORMAL_FIRST_LAYER;
     render();
-    assert_digit('1');
+    assert_digit('2');
     layer_state = 1UL << POC_CODEX_LAYER;
     render();
     assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
@@ -617,7 +617,7 @@ static void test_codex_custom_output(void) {
 }
 
 static void test_via_boot_waiting(void) {
-    reset_screen(0);
+    reset_screen(1);
     via_waiting = true;
     render();
     assert_label("VIA WAITTING");
@@ -630,9 +630,9 @@ static void test_via_boot_waiting(void) {
     render();
     assert_label("VIA WAITTING");
     via_waiting = false;
-    layer_state = 1;
+    layer_state = 1UL << POC_NORMAL_FIRST_LAYER;
     render();
-    assert_digit('1');
+    assert_digit('2');
     layer_state = 1UL << POC_CODEX_LAYER;
     render();
     assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);

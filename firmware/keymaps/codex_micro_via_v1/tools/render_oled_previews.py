@@ -7,12 +7,12 @@ WIDTH = 128
 HEIGHT = 32
 PREVIEWS = (
     ("via-waiting", "Startup: VIA WAITTING (10 s)"),
-    ("via-1", "VIA L0: 1"),
-    ("via-2", "VIA L1: 2"),
-    ("via-3", "VIA L2: 3"),
+    ("via-1", "VIA L1: 2"),
+    ("via-2", "VIA L2: 3"),
+    ("via-3", "VIA L3: 4"),
     ("via-shortcut", "VIA: actual output / GUI+C"),
-    ("codex-logo", "Codex L3: entry screen"),
-    ("codex-tasks", "Codex L3: six task-light estimates"),
+    ("codex-logo", "Codex L0: entry screen"),
+    ("codex-tasks", "Codex L0: six task-light estimates"),
 )
 
 

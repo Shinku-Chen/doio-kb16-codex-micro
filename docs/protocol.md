@@ -14,7 +14,7 @@ Codex Micro 模式：
 
 ```text
 ChatGPT Desktop ── Channel 2 ──> KB16 固件 ──> AG / MIC 灯光
-VIA（启动窗口） ── VIA Raw ──> KB16 EEPROM ──> L0–L2 普通层 / L3 占位页
+VIA（启动窗口） ── VIA Raw ──> KB16 EEPROM ──> L1–L3 普通层 / L0 Codex 五处自定义
 ```
 
 - **Channel 2**：ChatGPT 与键盘的 JSON-RPC，走 Raw HID Report ID 6。
@@ -22,7 +22,7 @@ VIA（启动窗口） ── VIA Raw ──> KB16 EEPROM ──> L0–L2 普通�
 
 Raw HID 中断 OUT 按 USB 报告边界分派，兼容 64 字节带 ID 和 63 字节报告体；控制 `SET_REPORT(Output)` 在中断中入队，主循环处理。错误 ID/类型/长度和满控制队列会拒绝控制请求，不在中断中解析 JSON 或写 EEPROM。
 
-`device.status.layer_index` 使用原生 Codex 槽为 1 的宿主编号：QMK L3→1，QMK L0/L1/L2→2/3/4，计算包含默认层，不是 VIA 编辑层号。当前流水线 `0.4.8-qmk` 已刷入并通过 sys.version/device.status 核验；正常断电启动约 10 秒切到 Codex、默认 L3，监测捕获 L3→L0→L1→L2→L3，与用户确认短按不切层、约一秒退出/可返回一致。详细哈希、时序及目视验收边界见 `development.md`；不代表 VIA 第四页实际执行改键，也不扩大为其他功能验收。
+`0.6.0-qmk` 的 `device.status.layer_index` 等于实际 QMK 层 + 1（包含默认层）：L0 Codex→1，L1/L2/L3 普通→2/3/4，与 VIA 页号一致。十秒窗口和 USB 身份仍不随切层改变；VIA 等待/锁定初始普通 L1，Codex 身份初始 L0。当前硬件仍是已刷入的 0.5.0；本次层序、MO/TO 及主机显示尚待新版流水线/实机验证，历史 0.4.x 应答记录见 `development.md`。
 
 ## Channel 2 方法
 
@@ -90,7 +90,7 @@ SDK 的 ThreadLighting 仅要求 id，其他字段省略表示保持。`0.4.5-qm
 
 此前固定 1.6 秒呼吸、忽略宿主速度及 `e:4` 被显示为常亮的问题已修复并通过回归测试。新的波形实现参考 OpenMicroKbd，不声称与原厂逐帧一致；当前已包含在实机 `0.3.0-qmk`，灯效逐帧一致性仍未验证，既有目视结果见 `lighting.md`。
 
-历史宿主录音提示常用海绿跑马、处理语音用白色跑马、准备好用白色常亮；这些是宿主用法，不是固定协议 RGB。源码 `0.4.3-qmk` 对第四排 LED 12–15 的环境 snake 按通用色类作本地调整：蓝色系 0–10%×B 呼吸、海绿色系 B 常亮、其他色系 0–100%×B 呼吸；不替换宿主原色，速度和提示生命周期跟随报文，显式 breath/solid/shallowBreath 不套这些例外。没有独立录音/运行状态字段，色类外观不能当作精确业务状态。keys 不铺满普通 ACT 背景；切层按住白光优先，长按 1 秒不变。
+历史宿主录音提示常用海绿跑马、处理语音用白色跑马、准备好用白色常亮；这些是宿主用法，不是固定协议 RGB。源码 `0.4.3-qmk` 对第四排 LED 12–15 的环境 snake 按通用色类作本地调整：蓝色系 0–10%×B 呼吸、海绿色系 B 常亮、其他色系 0–100%×B 呼吸；不替换宿主原色，速度和提示生命周期跟随报文，显式 breath/solid/shallowBreath 不套这些例外。没有独立录音/运行状态字段，色类外观不能当作精确业务状态。keys 不铺满普通 ACT 背景；当前 0.6.0 已取消专用切层白光和固定长按退出，AG/ACT/环境规则不变。
 
 ## 摇杆
 

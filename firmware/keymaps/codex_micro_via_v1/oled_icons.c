@@ -60,7 +60,7 @@ void oled_controller_note_input(oled_input_source_t source, const char *label, b
         return;
     }
     sync_layer();
-    if (current_layer > POC_CODEX_LAYER) {
+    if (current_layer >= POC_VIA_LAYER_COUNT) {
         return;
     }
     bool was_active = inputs[source].active;
@@ -171,7 +171,7 @@ void oled_controller_render(void) {
         } else {
             draw_tasks();
         }
-    } else if (current_layer < POC_NORMAL_LAYER_COUNT) {
+    } else if (current_layer < POC_VIA_LAYER_COUNT) {
         if (show_input) {
             draw_input();
         } else {
