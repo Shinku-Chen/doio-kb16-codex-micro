@@ -37,6 +37,12 @@ static uint8_t user_data[8];
 static unsigned keymap_writes;
 static unsigned encoder_writes;
 static unsigned user_data_writes;
+static unsigned replayed_events;
+static uint16_t replayed_keycodes[8];
+static bool replayed_pressed[8];
+static bool replay_changes_layer;
+static unsigned replayed_macros;
+static uint8_t replayed_macro_id;
 
 uint8_t get_highest_layer(layer_state_t state) {
     for (int bit = 31; bit >= 0; --bit) {
@@ -132,6 +138,24 @@ void dynamic_keymap_set_encoder(uint8_t layer, uint8_t index, bool clockwise, ui
 
 void layer_move(uint8_t layer) { layer_state = layer_state_set_user(1UL << layer); }
 void default_layer_set(layer_state_t state) { default_layer_state = default_layer_state_set_user(state); }
+
+void dynamic_keymap_macro_send(uint8_t id) { ++replayed_macros; replayed_macro_id = id; }
+
+#include "qmk_via_key_under_test.h"
+
+void process_record(keyrecord_t *record) {
+    uint16_t keycode = keymap_key_to_keycode(get_highest_layer(layer_state | default_layer_state), record->event.key);
+    assert(replayed_events < 8 && record->tap.count == 1);
+    replayed_keycodes[replayed_events] = keycode;
+    replayed_pressed[replayed_events++] = record->event.pressed;
+    assert(process_record_user(keycode, record));
+    if (!process_record_via(keycode, record)) {
+        return;
+    }
+    if (replay_changes_layer && record->event.pressed) {
+        layer_move(0);
+    }
+}
 
 void raw_hid_send(uint8_t *data, uint8_t length) {
     ++replies;
@@ -256,7 +280,7 @@ static void test_encoders_and_layer_actions(void) {
     process_record_user(LAYER_CYCLE, &record);
     mode_codex = true;
     for (uint8_t layer = 0; layer < POC_VIA_LAYER_COUNT; ++layer) {
-        assert(keymap_key_to_keycode(layer, (keypos_t){0, 0}) == (layer == POC_CODEX_LAYER ? 0x4100 : 0x1100 + layer * 20));
+        assert(keymap_key_to_keycode(layer, (keypos_t){0, 0}) == (layer == POC_CODEX_LAYER ? LAYER_CYCLE : 0x1100 + layer * 20));
         assert(keymap_key_to_keycode(layer, (keypos_t){KEYLOC_ENCODER_CW, 2}) == (layer == POC_CODEX_LAYER ? 0x4205 : 0x1205 + layer * 6));
     }
     assert(keymap_key_to_keycode(4, (keypos_t){0, 0}) == KC_NO);
@@ -279,13 +303,13 @@ static void test_ambient_layer_key_priority(void) {
     keyrecord_t record = {.event.pressed = true};
     process_record_user(LAYER_CYCLE, &record);
     rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
-    assert(indicator_colors[12] == 0xFFFFFF);
-    for (uint8_t led = 13; led < 16; ++led) {
+    assert(indicator_colors[POC_LAYER_KEY_LED] == 0xFFFFFF);
+    for (uint8_t led = 12; led < 16; ++led) {
         assert(indicator_colors[led] == 0x304FFE);
     }
-    indicator_colors[12] = 0x123456;
-    rgb_matrix_indicators_advanced_user(13, 16);
-    assert(indicator_colors[12] == 0x123456);
+    indicator_colors[POC_LAYER_KEY_LED] = 0x123456;
+    rgb_matrix_indicators_advanced_user(1, 16);
+    assert(indicator_colors[POC_LAYER_KEY_LED] == 0x123456);
     fake_timer = 1000 + POC_LAYER_KEY_HOLD_MS - 1;
     matrix_scan_user();
     assert(get_highest_layer(layer_state) == POC_CODEX_LAYER);
@@ -376,7 +400,8 @@ static void test_placeholder_page(void) {
             assert(!via_command_kb(report, sizeof(report)));
             dynamic_keymap_set_keycode(3, row, col, KC_A);
             assert(dynamic_keymap_get_keycode(3, row, col) == KC_A);
-            assert(keymap_key_to_keycode(3, (keypos_t){row, col}) == 0x4100 + row * 5 + col);
+            uint16_t expected = poc_codex_custom_position((keypos_t){row, col}) ? (row == POC_LAYER_KEY_ROW && col == POC_LAYER_KEY_COL ? LAYER_CYCLE : KC_A) : 0x4100 + row * 5 + col;
+            assert(keymap_key_to_keycode(3, (keypos_t){row, col}) == expected);
         }
     }
     for (uint8_t encoder = 0; encoder < NUM_ENCODERS; ++encoder) {
@@ -393,7 +418,128 @@ static void test_placeholder_page(void) {
     assert(keymap_key_to_keycode(0, (keypos_t){0, 0}) == KC_C);
     use_saved_keymap = false;
     mode_codex = true;
-    puts("PASS: VIA page 3 saves keys/encoders but runtime Codex layout ignores those edits; normal pages still apply");
+    puts("PASS: VIA page 3 executes only five custom positions, retains the exit sentinel and ignores edits to native keys/encoder rotation");
+}
+
+static void test_custom_migration(void) {
+    reset_saved_layout();
+    uint16_t before_keys[4][4][5];
+    uint16_t before_encoders[4][3][2];
+    memcpy(before_keys, saved_keymap, sizeof(before_keys));
+    memcpy(before_encoders, saved_encoders, sizeof(before_encoders));
+    uint32_t stamp = POC_FOUR_LAYER_STAMP;
+    memcpy(user_data + sizeof(uint32_t), &stamp, sizeof(stamp));
+    poc_migrate_codex_custom_keys();
+    assert(keymap_writes == 5 && encoder_writes == 0 && user_data_writes == 1);
+    for (uint8_t layer = 0; layer < 4; ++layer) {
+        for (uint8_t row = 0; row < 4; ++row) {
+            for (uint8_t column = 0; column < 5; ++column) {
+                bool reset = layer == 3 && poc_codex_custom_position((keypos_t){row, column});
+                assert(saved_keymap[layer][row][column] == (reset ? KC_NO : before_keys[layer][row][column]));
+            }
+        }
+    }
+    assert(memcmp(before_encoders, saved_encoders, sizeof(before_encoders)) == 0);
+    saved_keymap[3][0][0] = KC_C;
+    saved_keymap[0][0][0] = TO(4);
+    poc_migrate_four_layer_layout();
+    poc_migrate_codex_custom_keys();
+    assert(saved_keymap[3][0][0] == KC_C && saved_keymap[0][0][0] == TO(4));
+    assert(keymap_writes == 5 && user_data_writes == 1);
+    assert(user_data[0] == 0xA5);
+    use_saved_keymap = false;
+    puts("PASS: custom-key migration clears only the five newly active positions once, retaining normal pages, native storage, encoders and the existing EEPROM layout");
+}
+
+static void test_custom_tap_and_hold(void) {
+    reset_saved_layout();
+    default_layer_set(1UL);
+    layer_move(3);
+    saved_keymap[3][POC_LAYER_KEY_ROW][POC_LAYER_KEY_COL] = QK_MACRO_0;
+    replayed_events = 0;
+    replayed_macros = 0;
+    keyrecord_t record = {.event = {.key = {POC_LAYER_KEY_ROW, POC_LAYER_KEY_COL}, .pressed = true}};
+    fake_timer = 100;
+    process_record_user(LAYER_CYCLE, &record);
+    assert(replayed_events == 0);
+    saved_keymap[3][POC_LAYER_KEY_ROW][POC_LAYER_KEY_COL] = KC_B;
+    fake_timer += 999;
+    record.event.pressed = false;
+    process_record_user(LAYER_CYCLE, &record);
+    assert(replayed_events == 2 && replayed_keycodes[0] == QK_MACRO_0 && replayed_keycodes[1] == QK_MACRO_0);
+    assert(replayed_pressed[0] && !replayed_pressed[1] && !layer_key_replaying);
+    assert(replayed_macros == 1 && replayed_macro_id == 0);
+    record.event.pressed = true;
+    process_record_user(LAYER_CYCLE, &record);
+    fake_timer += 1000;
+    record.event.pressed = false;
+    process_record_user(LAYER_CYCLE, &record);
+    assert(replayed_events == 2 && get_highest_layer(layer_state) == 0);
+    layer_move(3);
+    record.event.pressed = true;
+    process_record_user(LAYER_CYCLE, &record);
+    fake_timer += 1000;
+    matrix_scan_user();
+    record.event.pressed = false;
+    process_record_user(LAYER_CYCLE, &record);
+    assert(replayed_events == 2 && get_highest_layer(layer_state) == 0);
+    layer_move(3);
+    record.event.pressed = true;
+    process_record_user(LAYER_CYCLE, &record);
+    layer_move(1);
+    record.event.pressed = false;
+    process_record_user(LAYER_CYCLE, &record);
+    assert(replayed_events == 2 && get_highest_layer(layer_state) == 1);
+    layer_move(3);
+    saved_keymap[3][POC_LAYER_KEY_ROW][POC_LAYER_KEY_COL] = TO(0);
+    replay_changes_layer = true;
+    record.event.pressed = true;
+    process_record_user(LAYER_CYCLE, &record);
+    record.event.pressed = false;
+    process_record_user(LAYER_CYCLE, &record);
+    assert(replayed_events == 4 && replayed_keycodes[2] == TO(0) && replayed_keycodes[3] == TO(0));
+    assert(get_highest_layer(layer_state) == 0 && !layer_key_replaying);
+    replay_changes_layer = false;
+    replayed_events = 0;
+    use_saved_keymap = false;
+    puts("PASS: exit short taps replay paired QMK events after release, snapshot the mapping and survive a layer action; long holds never emit the tap, even without an intervening scan");
+}
+
+static void test_custom_key_safety(void) {
+    reset_saved_layout();
+    const keypos_t positions[] = {{3,0}, {0,3}, {0,4}, {1,4}};
+    for (size_t index = 0; index < sizeof(positions) / sizeof(positions[0]); ++index) {
+        keypos_t key = positions[index];
+        saved_keymap[3][key.row][key.col] = KC_TRNS;
+        assert(keymap_key_to_keycode(3, key) == KC_NO);
+        saved_keymap[3][key.row][key.col] = AG00;
+        assert(keymap_key_to_keycode(3, key) == KC_NO);
+        saved_keymap[3][key.row][key.col] = KC_LCTL;
+        assert(keymap_key_to_keycode(3, key) == KC_LCTL);
+    }
+    assert(keymap_key_to_keycode(3, (keypos_t){2,4}) == 0x410E);
+    assert(keymap_key_to_keycode(3, (keypos_t){POC_LAYER_KEY_ROW,POC_LAYER_KEY_COL}) == LAYER_CYCLE);
+    use_saved_keymap = false;
+    puts("PASS: the four direct custom keys accept held modifiers without inheriting L0 or injecting native AG/ACT events; encoder C and the long-hold exit remain fixed");
+}
+
+static void test_bottom_left_is_direct(void) {
+    reset_saved_layout();
+    default_layer_set(1UL);
+    layer_move(POC_CODEX_LAYER);
+    layer_key_pressed = false;
+    saved_keymap[3][3][0] = KC_LCTL;
+    keyrecord_t record = {.event = {.key = {3, 0}, .pressed = true}};
+    uint16_t keycode = keymap_key_to_keycode(3, record.event.key);
+    assert(keycode == KC_LCTL && process_record_user(keycode, &record));
+    fake_timer += POC_LAYER_KEY_HOLD_MS * 2;
+    matrix_scan_user();
+    assert(!layer_key_pressed && get_highest_layer(layer_state | default_layer_state) == 3);
+    record.event.pressed = false;
+    assert(process_record_user(keycode, &record));
+    assert(keymap_key_to_keycode(3, (keypos_t){0,0}) == LAYER_CYCLE);
+    use_saved_keymap = false;
+    puts("PASS: bottom-left is a direct VIA key with held modifiers and no forced exit after two seconds; the exit is exclusively top-left");
 }
 
 static void test_rgb_restore(void) {
@@ -611,7 +757,7 @@ static void test_shared_rgb_power(void) {
     codex_micro_send_action_key(CODEX_MICRO_ACTION_06, true);
     layer_key_pressed = true;
     rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
-    assert(indicator_colors[1] == 0x304FFE && indicator_colors[8] == 0xFFFFFF && indicator_colors[12] == 0xFFFFFF);
+    assert(indicator_colors[1] == 0x304FFE && indicator_colors[8] == 0xFFFFFF && indicator_colors[POC_LAYER_KEY_LED] == 0xFFFFFF && indicator_colors[12] == 0);
     feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"e\":0}]}", true);
     rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
     for (uint8_t led = 0; led < RGB_MATRIX_LED_COUNT; ++led) assert(indicator_colors[led] == 0);
@@ -619,7 +765,7 @@ static void test_shared_rgb_power(void) {
     assert(poc_power_should_sleep());
     feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"e\":1}]}", true);
     rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
-    assert(indicator_colors[1] == 0x304FFE && indicator_colors[8] == 0xFFFFFF && indicator_colors[12] == 0xFFFFFF);
+    assert(indicator_colors[1] == 0x304FFE && indicator_colors[8] == 0xFFFFFF && indicator_colors[POC_LAYER_KEY_LED] == 0xFFFFFF && indicator_colors[12] == 0);
     layer_key_pressed = false;
     input_idle = 0;
     puts("PASS: real RGB indicator gates VIA/Codex output with shared power, valid VIA packets renew it, and explicit all-off outranks local ACT/layer white without losing host colors");
@@ -634,6 +780,10 @@ int main(void) {
     test_ambient_layer_key_priority();
     test_four_layer_migration();
     test_placeholder_page();
+    test_custom_migration();
+    test_custom_tap_and_hold();
+    test_custom_key_safety();
+    test_bottom_left_is_direct();
     test_via_bounds();
     test_control_queue_and_packets();
     test_hid_descriptor_selection();

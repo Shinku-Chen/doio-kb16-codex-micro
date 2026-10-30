@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="650" viewBox="0 0 480 650" role="img" aria-labelledby="title description">
+  <title id="title">KB16 · Codex 键位</title>
+  <desc id="description">0.5.0 开发版 L3：六个 AG、七个 ACT 固定。左上短按、右上方键、A/B 按下及左下方键共五处由 VIA 第四页自定义；左上长按一秒只回 L0，左下可直接按住。A/B 旋转仍是 X/Y，C 编码器固定。VIA1–5 不是层号，配色不是实际灯色，外观仅示意。</desc>
+  <style>
+    text { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #17243c; }
+    .mono { font-family: Menlo, Consolas, monospace; }
+    .muted { fill: #53657d; }
+    .center { text-anchor: middle; }
+    .strong { font-weight: 700; }
+  </style>
+  <rect width="480" height="650" rx="18" fill="#ffffff"/>
+  <text x="24" y="35" font-size="25" class="strong">KB16 · Codex 键位</text>
+  <text x="24" y="59" font-size="14" class="muted">0.5.0 开发 · L3 / 第四层 · 五处 VIA 自定义</text>
+  <rect x="12" y="76" width="456" height="302" rx="18" fill="#f2f5fa" stroke="#d4dde9"/>
+  <g data-control="key" data-matrix="0,0" data-keycode="LAYER_CYCLE" data-led="0" data-via-slot="1">
+    <title>VIA1: 短按自定义，长按一秒回 L0</title>
+    <rect x="24" y="90" width="60" height="60" rx="9" fill="#fff1d6" stroke="#dca54d"/>
+    <text x="54" y="107" font-size="12" class="center muted">短按</text>
+    <text x="54" y="128" font-size="18" class="center mono strong">VIA1</text>
+    <text x="54" y="143" font-size="11.5" class="center mono">1秒 → L0</text>
+  </g>
+  <g data-control="key" data-matrix="0,1" data-keycode="AG00" data-led="1">
+    <title>AG00</title>
+    <rect x="88" y="90" width="60" height="60" rx="9" fill="#e6f6f1" stroke="#8dcdb7"/>
+    <text x="118" y="110" font-size="14" class="center mono muted">AG</text>
+    <text x="118" y="137" font-size="27" class="center mono strong">00</text>
+  </g>
+  <g data-control="key" data-matrix="0,2" data-keycode="AG01" data-led="2">
+    <title>AG01</title>
+    <rect x="152" y="90" width="60" height="60" rx="9" fill="#e6f6f1" stroke="#8dcdb7"/>
+    <text x="182" y="110" font-size="14" class="center mono muted">AG</text>
+    <text x="182" y="137" font-size="27" class="center mono strong">01</text>
+  </g>
+  <g data-control="key" data-matrix="0,3" data-keycode="KC_NO" data-led="3" data-via-slot="2">
+    <title>VIA2: 第四页自定义，默认无动作</title>
+    <rect x="216" y="90" width="60" height="60" rx="9" fill="#eef0ff" stroke="#9da9de"/>
+    <text x="246" y="110" font-size="14" class="center mono muted">VIA</text>
+    <text x="246" y="137" font-size="27" class="center mono strong">02</text>
+  </g>
+  <g data-control="key" data-matrix="1,0" data-keycode="AG02" data-led="4">
+    <title>AG02</title>
+    <rect x="24" y="154" width="60" height="60" rx="9" fill="#e6f6f1" stroke="#8dcdb7"/>
+    <text x="54" y="174" font-size="14" class="center mono muted">AG</text>
+    <text x="54" y="201" font-size="27" class="center mono strong">02</text>
+  </g>
+  <g data-control="key" data-matrix="1,1" data-keycode="AG03" data-led="5">
+    <title>AG03</title>
+    <rect x="88" y="154" width="60" height="60" rx="9" fill="#e6f6f1" stroke="#8dcdb7"/>
+    <text x="118" y="174" font-size="14" class="center mono muted">AG</text>
+    <text x="118" y="201" font-size="27" class="center mono strong">03</text>
+  </g>
+  <g data-control="key" data-matrix="1,2" data-keycode="AG04" data-led="6">
+    <title>AG04</title>
+    <rect x="152" y="154" width="60" height="60" rx="9" fill="#e6f6f1" stroke="#8dcdb7"/>
+    <text x="182" y="174" font-size="14" class="center mono muted">AG</text>
+    <text x="182" y="201" font-size="27" class="center mono strong">04</text>
+  </g>
+  <g data-control="key" data-matrix="1,3" data-keycode="AG05" data-led="7">
+    <title>AG05</title>
+    <rect x="216" y="154" width="60" height="60" rx="9" fill="#e6f6f1" stroke="#8dcdb7"/>
+    <text x="246" y="174" font-size="14" class="center mono muted">AG</text>
+    <text x="246" y="201" font-size="27" class="center mono strong">05</text>
+  </g>
+  <g data-control="key" data-matrix="2,0" data-keycode="ACT06" data-led="8">
+    <title>ACT06</title>
+    <rect x="24" y="218" width="60" height="60" rx="9" fill="#ffffff" stroke="#c4cfdd"/>
+    <text x="54" y="238" font-size="14" class="center mono muted">ACT</text>
+    <text x="54" y="265" font-size="27" class="center mono strong">06</text>
+  </g>
+  <g data-control="key" data-matrix="2,1" data-keycode="ACT07" data-led="9">
+    <title>ACT07</title>
+    <rect x="88" y="218" width="60" height="60" rx="9" fill="#ffffff" stroke="#c4cfdd"/>
+    <text x="118" y="238" font-size="14" class="center mono muted">ACT</text>
+    <text x="118" y="265" font-size="27" class="center mono strong">07</text>
+  </g>
+  <g data-control="key" data-matrix="2,2" data-keycode="ACT08" data-led="10">
+    <title>ACT08</title>
+    <rect x="152" y="218" width="60" height="60" rx="9" fill="#ffffff" stroke="#c4cfdd"/>
+    <text x="182" y="238" font-size="14" class="center mono muted">ACT</text>
+    <text x="182" y="265" font-size="27" class="center mono strong">08</text>
+  </g>
+  <g data-control="key" data-matrix="2,3" data-keycode="ACT09" data-led="11">
+    <title>ACT09</title>
+    <rect x="216" y="218" width="60" height="60" rx="9" fill="#ffffff" stroke="#c4cfdd"/>
+    <text x="246" y="238" font-size="14" class="center mono muted">ACT</text>
+    <text x="246" y="265" font-size="27" class="center mono strong">09</text>
+  </g>
+  <g data-control="key" data-matrix="3,0" data-keycode="KC_NO" data-led="12" data-via-slot="5">
+    <title>VIA5: 第四页自定义，默认无动作</title>
+    <rect x="24" y="282" width="60" height="60" rx="9" fill="#eef0ff" stroke="#9da9de"/>
+    <text x="54" y="302" font-size="14" class="center mono muted">VIA</text>
+    <text x="54" y="329" font-size="27" class="center mono strong">05</text>
+  </g>
+  <g data-control="key" data-matrix="3,1" data-keycode="ACT10" data-led="13">
+    <title>ACT10</title>
+    <rect x="88" y="282" width="60" height="60" rx="9" fill="#ffffff" stroke="#c4cfdd"/>
+    <text x="118" y="302" font-size="14" class="center mono muted">ACT</text>
+    <text x="118" y="329" font-size="27" class="center mono strong">10</text>
+  </g>
+  <g data-control="key" data-matrix="3,2" data-keycode="ACT11" data-led="14">
+    <title>ACT11</title>
+    <rect x="152" y="282" width="60" height="60" rx="9" fill="#ffffff" stroke="#c4cfdd"/>
+    <text x="182" y="302" font-size="14" class="center mono muted">ACT</text>
+    <text x="182" y="329" font-size="27" class="center mono strong">11</text>
+  </g>
+  <g data-control="key" data-matrix="3,3" data-keycode="ACT12" data-led="15">
+    <title>ACT12</title>
+    <rect x="216" y="282" width="60" height="60" rx="9" fill="#ffffff" stroke="#c4cfdd"/>
+    <text x="246" y="302" font-size="14" class="center mono muted">ACT</text>
+    <text x="246" y="329" font-size="27" class="center mono strong">12</text>
+  </g>
+  <g data-control="encoder" data-index="0" data-matrix="0,4" data-keycode="KC_NO" data-via-slot="3" data-ccw="JOY_LEFT" data-cw="JOY_RIGHT">
+    <title>A: JOY_LEFT / JOY_RIGHT; 按下 VIA3 (default KC_NO)</title>
+    <circle cx="358" cy="120" r="24" fill="#eef0ff" stroke="#9da9de" stroke-width="1.5"/>
+    <circle cx="358" cy="120" r="18" fill="#ffffff" stroke="#d5daf0"/>
+    <path d="M 358 99 v 7" stroke="#5268aa" stroke-width="3" stroke-linecap="round"/>
+    <text x="358" y="128" font-size="23" class="center strong">A</text>
+    <text x="358" y="166" font-size="19" class="center mono strong">X</text>
+    <text x="358" y="190" font-size="22" class="center">← →</text>
+  </g>
+  <g data-control="encoder" data-index="1" data-matrix="1,4" data-keycode="KC_NO" data-via-slot="4" data-ccw="JOY_DOWN" data-cw="JOY_UP">
+    <title>B: JOY_DOWN / JOY_UP; 按下 VIA4 (default KC_NO)</title>
+    <circle cx="438" cy="120" r="24" fill="#eef0ff" stroke="#9da9de" stroke-width="1.5"/>
+    <circle cx="438" cy="120" r="18" fill="#ffffff" stroke="#d5daf0"/>
+    <path d="M 438 99 v 7" stroke="#5268aa" stroke-width="3" stroke-linecap="round"/>
+    <text x="438" y="128" font-size="23" class="center strong">B</text>
+    <text x="438" y="166" font-size="19" class="center mono strong">Y</text>
+    <text x="438" y="190" font-size="22" class="center">↓ ↑</text>
+  </g>
+  <g data-control="encoder" data-index="2" data-matrix="2,4" data-keycode="ENC_SW" data-ccw="ENC_CC" data-cw="ENC_CW">
+    <title>C: ENC_CC / ENC_CW; 按下 ENC_SW</title>
+    <circle cx="398" cy="280" r="42" fill="#eef0ff" stroke="#9da9de" stroke-width="1.5"/>
+    <circle cx="398" cy="280" r="36" fill="#ffffff" stroke="#d5daf0"/>
+    <path d="M 398 241 v 7" stroke="#5268aa" stroke-width="3" stroke-linecap="round"/>
+    <text x="398" y="288" font-size="27" class="center strong">C</text>
+    <text x="398" y="340" font-size="14" class="center mono">ENCODER</text>
+  </g>
+  <path d="M 94 347 v 5 h 112 v -5" fill="none" stroke="#7b8ca5" stroke-width="1.3"/>
+  <text x="150" y="369" font-size="12" class="center mono muted">MIC / ACT10 + ACT11</text>
+  <rect x="20" y="392" width="440" height="52" rx="10" fill="#f7f9fc" stroke="#e0e6ef"/>
+  <text x="42" y="425" font-size="23" class="center strong">A</text>
+  <text x="66" y="414" font-size="17" class="strong">摇杆 X：逆时针 ← / 顺时针 →</text>
+  <text x="66" y="434" font-size="12.5" class="muted">JOY_LEFT / JOY_RIGHT · 按下：VIA3</text>
+  <rect x="20" y="450" width="440" height="52" rx="10" fill="#f7f9fc" stroke="#e0e6ef"/>
+  <text x="42" y="483" font-size="23" class="center strong">B</text>
+  <text x="66" y="472" font-size="17" class="strong">摇杆 Y：逆时针 ↓ / 顺时针 ↑</text>
+  <text x="66" y="492" font-size="12.5" class="muted">JOY_DOWN / JOY_UP · 按下：VIA4</text>
+  <rect x="20" y="508" width="440" height="52" rx="10" fill="#f7f9fc" stroke="#e0e6ef"/>
+  <text x="42" y="541" font-size="23" class="center strong">C</text>
+  <text x="66" y="530" font-size="16" class="strong">编码器：逆 ENC_CC / 顺 ENC_CW</text>
+  <text x="66" y="550" font-size="12.5" class="muted">按下：ENC_SW</text>
+  <text x="24" y="590" font-size="17" class="strong">左上角长按 1 秒 → L0 · TO(3) → L3</text>
+  <text x="24" y="615" font-size="13" class="muted">VIA1–5 是位置编号；其余 AG/ACT 与旋转保持固定。</text>
+  <text x="24" y="637" font-size="12" class="muted">MIC 可合用或拆分；图中配色仅为分组，不代表实际灯色。</text>
+</svg>

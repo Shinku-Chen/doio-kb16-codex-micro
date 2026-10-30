@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
+import xml.etree.ElementTree as ET
 
 
 KEYMAP = Path(__file__).resolve().parents[1]
@@ -60,6 +61,43 @@ def check_via_layout():
     assert positions["2,4"] == (5.375, 2.5)
     assert len(positions) == 19
     print("PASS: VIA KLE relative offsets produce the physical 16 keys and three knobs", flush=True)
+    return positions
+
+
+def check_codex_layout_artwork(positions):
+    source = (KEYMAP / "keymap.c").read_text()
+    body = re.search(r"\[_CODEX\]\s*=\s*LAYOUT\((.*?)\),", source, re.S).group(1)
+    defaults = [entry.strip() for entry in re.sub(r"/\*.*?\*/", "", body, flags=re.S).split(",") if entry.strip()]
+    assert len(defaults) == 19
+    encoder_source = source[source.index("const uint16_t PROGMEM encoder_map"):]
+    body = re.search(r"\[_CODEX\]\s*=\s*\{(.*?)\},", encoder_source, re.S).group(1)
+    turns = re.findall(r"ENCODER_CCW_CW\((\w+),\s*(\w+)\)", body)
+    custom = {"0,0": "1", "0,3": "2", "0,4": "3", "1,4": "4", "3,0": "5"}
+    namespace = {"svg": "http://www.w3.org/2000/svg"}
+    for language in ("zh", "en"):
+        artwork = ET.parse(REPO / f"docs/assets/kb16-codex-layout-{language}.svg").getroot()
+        keys = artwork.findall('svg:g[@data-control="key"]', namespace)
+        knobs = artwork.findall('svg:g[@data-control="encoder"]', namespace)
+        assert len(keys) == 16 and len(knobs) == 3
+        for group in keys + knobs:
+            matrix = group.attrib["data-matrix"]
+            row, column = map(int, matrix.split(","))
+            expected = "LAYER_CYCLE" if matrix == "0,0" else defaults[row * 5 + column]
+            assert group.attrib["data-keycode"] == expected
+            assert group.attrib.get("data-via-slot") == custom.get(matrix)
+            horizontal, vertical = positions[matrix]
+            if group in keys:
+                rect = group.find("svg:rect", namespace)
+                assert float(rect.attrib["x"]) == 24 + horizontal * 64
+                assert float(rect.attrib["y"]) == 90 + vertical * 64
+                assert int(group.attrib["data-led"]) == row * 4 + column
+            else:
+                circle = group.find("svg:circle", namespace)
+                assert float(circle.attrib["cx"]) == 24 + horizontal * 64 + 30
+                assert float(circle.attrib["cy"]) == 90 + vertical * 64 + 30
+                index = int(group.attrib["data-index"])
+                assert (group.attrib["data-ccw"], group.attrib["data-cw"]) == turns[index]
+    print("PASS: both SVG layouts match the five VIA positions, top-left exit, native controls, LED indexes and VIA physical coordinates", flush=True)
 
 
 def check_power_config():
@@ -86,11 +124,13 @@ with tempfile.TemporaryDirectory(prefix="kb16-tests-") as scratch:
     enum = re.search(r"enum poc_keycodes \{.*?\n\};", source, re.S).group()
     extracted = [enum, "#define POC_LAYER_COUNT (POC_CODEX_LAYER + 1)"]
     extracted.append(re.search(r"#define POC_FOUR_LAYER_STAMP .*", source).group())
+    extracted.append(re.search(r"#define POC_CUSTOM_KEYS_STAMP .*", source).group())
     extracted.append(source[source.index("static bool     layer_key_pressed;"):source.index("static void exit_codex_layer")])
     for signature in (
         "static void exit_codex_layer(", "uint16_t keymap_key_to_keycode(",
-        "static void codex_send_action(", "bool process_record_user(", "void matrix_scan_user(",
+        "static void codex_send_action(", "static void poc_send_layer_tap(", "bool process_record_user(", "void matrix_scan_user(",
         "static uint16_t poc_remap_legacy_codex_keycode(", "static void poc_migrate_four_layer_layout(",
+        "static void poc_migrate_codex_custom_keys(",
     ):
         extracted.append(function(source, signature))
     extracted.append(source[source.index("static bool codex_rgb_active;"):source.index("static void codex_rgb_init(void) {")])
@@ -114,6 +154,7 @@ with tempfile.TemporaryDirectory(prefix="kb16-tests-") as scratch:
     via_source = (QMK / "quantum/via.h").read_text()
     via_enum = re.search(r"enum via_command_id \{.*?\n\};", via_source, re.S).group()
     (directory / "via.h").write_text("#pragma once\n" + via_enum + "\nbool via_command_kb(uint8_t *data, uint8_t length);\n")
+    (directory / "qmk_via_key_under_test.h").write_text(function((QMK / "quantum/via.c").read_text(), "bool process_record_via("))
 
     usb_source = (REPO / "firmware/qmk-core-patches/tmk_core/protocol/chibios/usb_main.c").read_text()
     (directory / "usb_input_under_test.h").write_text("\n".join(function(usb_source, signature) for signature in (
@@ -142,5 +183,6 @@ with tempfile.TemporaryDirectory(prefix="kb16-tests-") as scratch:
     compile_and_run(directory, "storage_layout", [KEYMAP / "tools/storage_layout_test.c"])
     compile_and_run(directory, "power", [KEYMAP / "poc_power.c", KEYMAP / "tools/power_test.c"])
     compile_and_run(directory, "startup", [KEYMAP / "tools/startup_test.c"])
-    check_via_layout()
+    positions = check_via_layout()
+    check_codex_layout_artwork(positions)
     check_power_config()

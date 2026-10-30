@@ -8,6 +8,8 @@ Turn a **DOIO KB16-01 Rev2** into a Codex Micro-compatible controller while keep
 
 ## Download and version
 
+> **Development source `0.5.0-qmk`** adds five VIA-configurable positions in Codex L3: both top corner keys, A/B clicks and bottom-left. **The one-second exit moves to the top-left square key**; its tap executes VIA1 on release, while bottom-left directly executes its page-4 mapping, including holds. OLED shows actual output and restores tasks/logo about 900 ms after release. Diagrams/tables below describe development source. The device still runs `0.4.9-qmk`; no new release or flash has been performed. See the [five-key guide](docs/codex-via-keys.md).
+
 - **[v0.4.9-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.9-qmk)** includes `.bin`, `.hex`, the VIA definition, `BUILD-INFO.json` and `SHA256SUMS`.
 - Fixes OLED blackout when all task lights are cleared: **independent screen sleep, a persistent Logo+CODEX when no task lights are assigned, and a full one-second entry logo**. RGB behavior, EEPROM, the 10-second VIA window and one-second exit are unchanged. The CI-built `0.4.9-qmk` has been flashed; version replies and the entry logo passed hardware checks. The user skipped the one-hour idle/key-wake test, so it remains unverified on hardware.
 - The pipeline-built `0.4.8-qmk` has been flashed and hardware-checked: version replies, the approximately 10-second cold-start display, no switch on a short tap, exit to L0 after about a 1-second hold, and return to Codex all passed. Host monitoring also captured the four-layer route; hand timing is not precision measurement. See [development notes](docs/development.md).
@@ -30,7 +32,7 @@ dfu-util -w -a 2 -d 1EAF:0003 \
 
 4. Do not disconnect or reset during download. If the board only restarts, ensure the waiting command is still running before retrying internal RESET. Stop on `UNKNOWN` / `LIBUSB_ERROR_PIPE`, power-cycle and re-enter DFU; never mass-erase or unprotect.
 5. After download, verify re-enumeration and the running version; **do not blindly reflash because the reset stage returns `74`**. See this version's `BUILD-INFO.json` for the BIN size, which includes a 16-byte DFU suffix not transferred as application data. Do not pass Intel HEX to the raw BIN command.
-6. **Cold-start acceptance uses no reset button:** unplug for 5 seconds, reconnect normally without pressing RET/internal RESET/other keys, and keep VIA closed. Expect `VIA WAITTING` for about 10 seconds, then Codex L3. Hold bottom-left about 1 second to reach L0 (OLED `1`); use `TO(3)` to return.
+6. **Cold-start acceptance uses no reset button:** unplug for 5 seconds, reconnect normally without pressing RET/internal RESET/other keys, and keep VIA closed. Expect `VIA WAITTING` for about 10 seconds, then Codex L3. The downloaded 0.4.9 uses a one-second bottom-left hold to reach L0; development 0.5.0 uses top-left instead. OLED displays `1`; use `TO(3)` to return.
 
 See [flashing and recovery](docs/usage.md). Screen text and manual hold timing require human observation; USB timing is supporting evidence only.
 
@@ -41,7 +43,7 @@ See [flashing and recovery](docs/usage.md). Screen text and manual hold timing r
 | First / L0 | `1` | Ordinary keyboard | Yes, keys and encoders |
 | Second / L1 | `2` | Ordinary keyboard | Yes |
 | Third / L2 | `3` | Ordinary keyboard | Yes |
-| **Fourth / L3** | Entry Logo + `CODEX`; task estimates if assigned, otherwise the logo stays | **Fixed Codex layer** | **No: edits can be stored/read back but are ignored at runtime** |
+| **Fourth / L3** | Logo/tasks, temporarily replaced by custom key output | **Native Codex + five VIA positions (0.5.0)** | **Only those five execute; native keys and turns stay fixed** |
 
 There is no fifth layer. VIA indices are zero-based; OLED numbers `1/2/3` are friendly display numbers for L0/L1/L2.
 
@@ -51,7 +53,7 @@ There is no fifth layer. VIA indices are zero-based; OLED numbers `1/2/3` are fr
 Connect USB after actual power-off → VIA WAITTING
   ├─ Valid VIA command within 10 s → VIA USB identity until power-off
   └─ No VIA command within 10 s → reset → Codex USB identity, default L3
-       ├─ Hold bottom-left key for 1 s → L0 (ordinary keyboard)
+       ├─ Hold top-left square key for 1 s → L0 (development 0.5.0)
        └─ Press a configured TO(3) key in L0/L1/L2 → L3 (Codex)
 ```
 
@@ -60,11 +62,11 @@ Connect USB after actual power-off → VIA WAITTING
 1. Open [VIA](https://usevia.app) beforehand in a Chromium browser with WebHID support. Enable **Show Design tab** in settings.
 2. Load [`firmware/via/kb16_codex_via.json`](firmware/via/kb16_codex_via.json) in Design, or use the copy from the Release.
 3. Power-cycle the keyboard. While `VIA WAITTING` is displayed, **authorize `DOIO / KB16-01` and let VIA successfully read the layout within 10 seconds**. Merely opening the page or a serial connection does not count.
-4. Once valid communication occurs, VIA stays available until power-off. You do not have to finish editing within 10 seconds. Edit **L0–L2**, including encoder directions and clicks. Changes are stored on the keyboard and survive closing VIA.
+4. Once valid communication occurs, VIA stays available until power-off. You do not have to finish editing within 10 seconds. Edit **L0–L2**, including encoder directions and clicks; development 0.5.0 also executes the five custom positions on page 4. Changes persist, but the first upgrade clears those newly active positions once for safety.
 5. **Reserve a `TO(3)` return key in each ordinary layer.** Select that layer action in VIA, or enter QMK keycode `0x5203` using Any. This enters the fourth layer; editing page 3 does not change the fixed Codex mapping.
-6. When finished, power-cycle again with VIA closed/disconnected. Send no VIA commands and wait 10 seconds for the Codex USB identity. Hold the bottom-left key for 1 second to use your saved ordinary L0 layout.
+6. When finished, power-cycle again with VIA closed/disconnected. Send no VIA commands and wait 10 seconds for the Codex USB identity. In development 0.5.0 hold the top-left square key for 1 second to use your saved ordinary L0 layout; released 0.4.9 still uses bottom-left.
 
-**Codex → ordinary:** Hold **R4C1, bottom-left, for 1 second**, then release. L0 displays `1`. A short tap does not switch. This position is not reserved in ordinary layers; it follows your VIA mapping there.
+**Codex → ordinary (development 0.5.0):** Hold **R1C1, the top-left square key, for 1 second**. L0 displays `1`, without emitting its tap action; a short tap executes VIA1 on release. Bottom-left VIA5 is a direct custom key and no longer forces an exit when held. Configured layer actions may intentionally switch layers; neither position is reserved in ordinary layers. Released 0.4.9 still uses bottom-left for exit.
 
 **Ordinary → Codex:** Press your configured `TO(3)` key. Fresh defaults also let the upper-right encoder B click advance L0→L1→L2→L3. Existing saved mappings may differ.
 
@@ -77,15 +79,18 @@ Connect USB after actual power-off → VIA WAITTING
 
 ## Codex key mapping
 
-Viewed from the front; row/column numbers start at 1. This is **fixed L3 only**. Ordinary layers follow VIA.
+Viewed from the front; row/column numbers start at 1. This is **development 0.5.0 L3**. VIA1–5 mark custom positions, not layers; released 0.4.9 does not support them. Ordinary layers follow VIA.
+
+![KB16 fixed Codex L3 key map, three knobs and layer exit](docs/assets/kb16-codex-layout-en.svg)
+
+Scalable artwork: [English SVG](docs/assets/kb16-codex-layout-en.svg) · [中文 SVG](docs/assets/kb16-codex-layout-zh.svg). Key and knob-center positions follow the current firmware/VIA definition; the enclosure and control sizes are schematic. Colors distinguish key groups, not live LED colors. See the [mapping notes](docs/keymap.md).
 
 ```text
        C1       C2       C3       C4
-R1     Empty    AG00     AG01     Empty
+R1     VIA1     AG00     AG01     VIA2   <- VIA1: hold 1s to L0
 R2     AG02     AG03     AG04     AG05
 R3     ACT06    ACT07    ACT08    ACT09
-R4     To L0    ACT10    ACT11    ACT12
-       Hold 1s
+R4     VIA5     ACT10    ACT11    ACT12
 
 Right side: A upper-left knob  = joystick X
             B upper-right knob = joystick Y
@@ -94,17 +99,18 @@ Right side: A upper-left knob  = joystick X
 
 | KB16 position | Codex event / purpose | LED index (zero-based) |
 |---|---|---|
-| R1C1 / R1C4 | Empty, no input | 0 / 3, always off |
+| R1C1 | VIA1 tap executes on release; hold 1 second exits without the tap | 0, held white subject to RGB power policy |
+| R1C4 | VIA2, direct custom key supporting holds | 3, no local white, always off |
 | R1C2 / R1C3 | AG00 / AG01 | 1 / 2 |
 | R2C1 / R2C2 / R2C3 / R2C4 | AG02 / AG03 / AG04 / AG05 | 4 / 5 / 6 / 7 |
 | R3C1 / R3C2 / R3C3 / R3C4 | ACT06 / ACT07 / ACT08 / ACT09 | 8 / 9 / 10 / 11 |
-| R4C1 | Local exit to L0 after 1 second; no AG/ACT event | 12 |
+| R4C1 | VIA5, direct custom key supporting holds; no forced exit | 12, ambient only, no local white |
 | R4C2 / R4C3 / R4C4 | ACT10 / ACT11 / ACT12 | 13 / 14 / 15 |
 
 | Knob | Counterclockwise | Clockwise | Click |
 |---|---|---|---|
-| A, upper-left | `JOY_LEFT` | `JOY_RIGHT` | None |
-| B, upper-right | `JOY_DOWN` | `JOY_UP` | None |
+| A, upper-left | `JOY_LEFT` | `JOY_RIGHT` | VIA3, configured on page 4 |
+| B, upper-right | `JOY_DOWN` | `JOY_UP` | VIA4, configured on page 4 |
 | C, large lower | `ENC_CC` | `ENC_CW` | `ENC_SW` |
 
 Joystick directions are discrete events, not continuous analog axes. ACT10/ACT11 represent the original MIC key halves; a compatible host may combine them for a microphone action or assign separate actions. **There is no extra dedicated seventeenth MIC key.** Host-side action bindings do not rewrite this physical event mapping or implement Work Louder Input configuration.
@@ -128,6 +134,8 @@ These images are generated from **actual 128×32 test framebuffers rendered by t
 ![Actual output GUI+C](docs/assets/oled-via-shortcut.svg)
 
 **Codex:** A terminal logo + `CODEX` appears for about 1 second from the first visible frame on entry. Assigned task lights then show six AG light-derived estimates; with no assigned tasks, the logo stays. Clearing all tasks returns to the logo rather than blanking OLED. Brightness zero does not release a task; only unassigned or explicitly `off` slots count as absent.
+
+In development 0.5.0, ordinary HID output from the five custom positions temporarily replaces the logo/tasks with actual keys, chords, media or mouse labels. The label stays while held and restores the page about 900 ms after release. Macros show their latest output; native AG/ACT events remain unchanged. See the [full behavior](docs/codex-via-keys.md).
 
 ![Codex entry](docs/assets/oled-codex-logo.svg)
 ![Six task-light estimates](docs/assets/oled-codex-tasks.svg)
@@ -177,8 +185,8 @@ White/gray breathing does not receive the 5% idle multiplier. Speed 0 freezes th
 | Ambient `rainbow` / `gradient` | All four bottom-row LEDs | Animation colors | B, host speed |
 | Ambient cleared / off | Bottom row | None | Off unless another task/press indication takes priority |
 | Ordinary ACT without ambient/extended task | Pressed ACT | Local pure white | Normally off; 100% white while held |
-| Exit key held | R4C1 | Local pure white | 100% while held; exit after 1 second |
-| Empty positions | R1C1 / R1C4 | None | Always off |
+| Exit key held | R1C1 (development 0.5.0) | Local pure white | 100% while held; exit after 1 second; 0.4.9 uses R4C1 |
+| Other custom square keys | R1C4 / R4C1 | No added local white | R1C4 stays dark; R4C1 follows ambient only |
 
 Ambient covers R4C1–R4C4, not the six AG keys or row 3. It may light during task execution: **ambient activity does not necessarily mean recording**. Blue/teal exceptions classify color plus snake; they are not explicit host recording/running flags.
 
@@ -197,14 +205,14 @@ See the detailed [light tables](docs/lighting.md) and [compatibility assessment]
 
 | Item | Original design / behavior | This KB16 implementation |
 |---|---|---|
-| Controls | Encoder and joystick occupy top corners | 16 square keys + 3 knobs; two top corners unused, bottom-left reserved for exit |
+| Controls | Encoder and joystick occupy top corners | 16 square keys + 3 knobs; corners, bottom-left and A/B clicks use VIA; top-left hold exits |
 | Joystick | Physical joystick | Two top knobs emit discrete X/Y directions; no continuous analog position |
 | Encoder | Original encoder | Large lower knob C |
 | MIC | ACT10 + ACT11 halves | Middle bottom-row keys, combined/split by the host |
 | Ambient zone | Separate original light area | Four bottom-row key LEDs; chase becomes breath, recording-like teal becomes solid |
 | Key lights | Original physical arrangement | Six AG + seven extended ACT light slots; idle solid at 5%; ordinary ACT off except while pressed |
 | Screen | Does not use the KB16 OLED | Added safe-margin logo, six light-derived estimates, ordinary layer numbers and actual-output labels |
-| Ordinary remapping | Original product configuration system | Three VIA layers + fixed fourth Codex layer; 10-second VIA handshake |
+| Ordinary remapping | Original product configuration system | Three VIA layers + five custom positions beside native L3 controls; 10-second VIA handshake |
 | Work Louder Input | Original hardware configuration tool | **No Input remapping, `fs.*`, Mapper or Channel 3** |
 | Battery / wireless | Depends on original hardware | Wired USB KB16, no real battery telemetry; compatibility replies are not battery measurements |
 | Protocol completeness | Original firmware | Implemented Codex Channel 2 subset, not a full original-firmware clone |

@@ -60,7 +60,7 @@ void oled_controller_note_input(oled_input_source_t source, const char *label, b
         return;
     }
     sync_layer();
-    if (current_layer >= POC_CODEX_LAYER) {
+    if (current_layer > POC_CODEX_LAYER) {
         return;
     }
     bool was_active = inputs[source].active;
@@ -156,20 +156,23 @@ void oled_controller_render(void) {
         layer_entered_at = now;
         layer_frame_pending = false;
     }
+    bool active = false;
+    for (uint8_t source = 0; source < OLED_INPUT_COUNT; ++source) {
+        active |= inputs[source].active;
+    }
+    bool show_input = have_input && (active || now - input_updated_at < OLED_KEY_IDLE_MS);
     if (poc_mode_via_waiting()) {
         draw_centered("VIA WAITTING", 12, 1);
     } else if (current_layer == POC_CODEX_LAYER) {
-        if (now - layer_entered_at < OLED_LAYER_SPLASH_MS || !codex_micro_has_task_lights()) {
+        if (show_input) {
+            draw_input();
+        } else if (now - layer_entered_at < OLED_LAYER_SPLASH_MS || !codex_micro_has_task_lights()) {
             memcpy_P(frame, codex_splash, sizeof(frame));
         } else {
             draw_tasks();
         }
     } else if (current_layer < POC_NORMAL_LAYER_COUNT) {
-        bool active = false;
-        for (uint8_t source = 0; source < OLED_INPUT_COUNT; ++source) {
-            active |= inputs[source].active;
-        }
-        if (have_input && (active || now - input_updated_at < OLED_KEY_IDLE_MS)) {
+        if (show_input) {
             draw_input();
         } else {
             char label[] = {(char)('1' + current_layer), '\0'};

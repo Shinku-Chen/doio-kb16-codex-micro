@@ -41,10 +41,11 @@ enum poc_keycodes {
 
 #define POC_LAYER_STAMP 0x4B423136UL // "KB16"
 #define POC_FOUR_LAYER_STAMP 0x344C4333UL
+#define POC_CUSTOM_KEYS_STAMP 0x354B4333UL
 
 /* Layers 0-2 mirror the VIA layout that was saved on the stock firmware.
- * Layer 3 is the fixed Codex Micro layer: encoder, AG00-AG05, ACT06-ACT12,
- * Mic/ACT10/ACT11 and the joystick axes on the two remaining knobs. */
+ * Layer 3 keeps native AG/ACT, joystick axes and encoder controls in flash.
+ * Five spare key positions use VIA; top-left retains a one-second exit. */
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_VIA0] = LAYOUT(
         KC_ESC, G(KC_W), LSG(KC_A), G(KC_BSPC), TO(0),
@@ -65,10 +66,10 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_TRNS, MS_BTN1, MS_BTN1, MS_BTN1),
 
     [_CODEX] = LAYOUT(
-        KC_NO, AG00, AG01, KC_NO, KC_NO,  /* [0,4] 旋钮 A 按下：空 */
-        AG02, AG03, AG04, AG05, KC_NO,    /* [1,4] 旋钮 B 按下：空 */
+        KC_NO, AG00, AG01, KC_NO, KC_NO,  /* [0,4] 旋钮 A 按下：VIA 默认无动作 */
+        AG02, AG03, AG04, AG05, KC_NO,    /* [1,4] 旋钮 B 按下：VIA 默认无动作 */
         ACT06, ACT07, ACT08, ACT09, ENC_SW, /* [2,4] 旋钮 C 按下 = 编码器按键 */
-        LAYER_CYCLE, ACT10, ACT11, ACT12),
+        KC_NO, ACT10, ACT11, ACT12),
 };
 
 #ifdef ENCODER_MAP_ENABLE
@@ -102,20 +103,41 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
 static bool     layer_key_pressed;
 static bool     layer_key_fired;
 static uint16_t layer_key_at;
+static uint16_t layer_key_tap_code;
+static bool     layer_key_replaying;
+
+static bool poc_codex_custom_position(keypos_t key) {
+    return (key.row == 0 && (key.col == 0 || key.col == 3 || key.col == 4)) ||
+           (key.row == 1 && key.col == 4) || (key.row == 3 && key.col == 0);
+}
+
+static uint16_t poc_codex_custom_keycode(keypos_t key) {
+    uint16_t keycode = dynamic_keymap_get_keycode(POC_CODEX_LAYER, key.row, key.col);
+    if (keycode == KC_TRNS || (keycode >= AG00 && keycode <= LAYER_CYCLE)) {
+        return KC_NO;
+    }
+    return keycode;
+}
 
 static void exit_codex_layer(void) {
     default_layer_set(1UL);
     layer_move(0);
 }
 
-// Layer 0-2 use VIA data; layer 3 always uses flash, despite its editable page.
+// Layers 0-2 use VIA data; layer 3 uses VIA only at the five custom positions.
 // QMK's own keymap_key_to_keycode() is weak, so this replaces it wholesale.
 uint16_t keymap_key_to_keycode(uint8_t layer, keypos_t key) {
     if (layer >= POC_VIA_LAYER_COUNT) {
         return KC_NO;
     }
+    if (layer_key_replaying && key.row == POC_LAYER_KEY_ROW && key.col == POC_LAYER_KEY_COL) {
+        return layer_key_tap_code;
+    }
     if (layer == POC_CODEX_LAYER) {
         if (key.row < MATRIX_ROWS && key.col < MATRIX_COLS) {
+            if (poc_codex_custom_position(key)) {
+                return key.row == POC_LAYER_KEY_ROW && key.col == POC_LAYER_KEY_COL ? LAYER_CYCLE : poc_codex_custom_keycode(key);
+            }
             return keycode_at_keymap_location_raw(layer, key.row, key.col);
         }
 #ifdef ENCODER_MAP_ENABLE
@@ -147,16 +169,46 @@ static void codex_send_action(codex_micro_action_t action, bool pressed) {
     codex_micro_send_action_key(action, pressed);
 }
 
+static void poc_send_layer_tap(keyrecord_t *record) {
+    if (layer_key_tap_code == KC_NO) {
+        return;
+    }
+    keyrecord_t replay = *record;
+    replay.event.key = (keypos_t){.row = POC_LAYER_KEY_ROW, .col = POC_LAYER_KEY_COL};
+#if defined(COMBO_ENABLE) || defined(REPEAT_KEY_ENABLE)
+    replay.keycode = layer_key_tap_code;
+#endif
+#ifndef NO_ACTION_TAPPING
+    replay.tap.count = 1;
+    replay.tap.interrupted = false;
+#endif
+    layer_key_replaying = true;
+    replay.event.pressed = true;
+    process_record(&replay);
+    replay.event.pressed = false;
+    process_record(&replay);
+    layer_key_replaying = false;
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case LAYER_CYCLE:
-            // L3 左下角长按离开 Codex；普通层由 VIA 配置 TO(0)..TO(3)。
+            // L3 左上角长按离开 Codex；普通层由 VIA 配置 TO(0)..TO(3)。
             if (record->event.pressed) {
-                layer_key_pressed = true;
-                layer_key_fired   = false;
-                layer_key_at      = timer_read();
+                layer_key_pressed  = true;
+                layer_key_fired    = false;
+                layer_key_at       = timer_read();
+                layer_key_tap_code = poc_codex_custom_keycode((keypos_t){.row = POC_LAYER_KEY_ROW, .col = POC_LAYER_KEY_COL});
             } else {
+                bool short_tap = layer_key_pressed && !layer_key_fired && timer_elapsed(layer_key_at) < POC_LAYER_KEY_HOLD_MS && get_highest_layer(layer_state | default_layer_state) == POC_CODEX_LAYER;
+                bool long_hold = layer_key_pressed && !layer_key_fired && timer_elapsed(layer_key_at) >= POC_LAYER_KEY_HOLD_MS;
                 layer_key_pressed = false;
+                if (long_hold) {
+                    layer_key_fired = true;
+                    exit_codex_layer();
+                } else if (short_tap) {
+                    poc_send_layer_tap(record);
+                }
             }
             return false;
         case AG00:
@@ -266,7 +318,7 @@ static uint16_t poc_remap_legacy_codex_keycode(uint16_t keycode) {
 static void poc_migrate_four_layer_layout(void) {
     uint32_t stamp = 0;
     eeconfig_read_user_datablock(&stamp, sizeof(uint32_t), sizeof(stamp));
-    if (stamp == POC_FOUR_LAYER_STAMP) {
+    if (stamp == POC_FOUR_LAYER_STAMP || stamp == POC_CUSTOM_KEYS_STAMP) {
         return;
     }
 
@@ -297,6 +349,23 @@ static void poc_migrate_four_layer_layout(void) {
     eeconfig_update_user_datablock(&stamp, sizeof(uint32_t), sizeof(stamp));
 }
 
+static void poc_migrate_codex_custom_keys(void) {
+    uint32_t stamp = 0;
+    eeconfig_read_user_datablock(&stamp, sizeof(uint32_t), sizeof(stamp));
+    if (stamp == POC_CUSTOM_KEYS_STAMP) {
+        return;
+    }
+    for (uint8_t row = 0; row < MATRIX_ROWS; ++row) {
+        for (uint8_t column = 0; column < MATRIX_COLS; ++column) {
+            if (poc_codex_custom_position((keypos_t){.row = row, .col = column})) {
+                dynamic_keymap_set_keycode(POC_CODEX_LAYER, row, column, KC_NO);
+            }
+        }
+    }
+    stamp = POC_CUSTOM_KEYS_STAMP;
+    eeconfig_update_user_datablock(&stamp, sizeof(uint32_t), sizeof(stamp));
+}
+
 #ifdef RGB_MATRIX_ENABLE
 static void codex_rgb_init(void);
 #endif
@@ -304,6 +373,7 @@ static void codex_rgb_init(void);
 void keyboard_post_init_user(void) {
     poc_check_layout_stamp();
     poc_migrate_four_layer_layout();
+    poc_migrate_codex_custom_keys();
     codex_micro_init();
     oled_controller_init();
 #ifdef RGB_MATRIX_ENABLE
@@ -369,9 +439,9 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
         return true;
     }
     codex_micro_rgb_indicators(led_min, led_max);
-    // 左下角切层键：按住期间点亮（LED 索引 12 = R4C1）。
-    if (layer_key_pressed && get_highest_layer(layer_state | default_layer_state) == POC_CODEX_LAYER && 12 >= led_min && 12 < led_max) {
-        RGB_MATRIX_INDICATOR_SET_COLOR(12, 255, 255, 255);
+    // 左上角切层键：按住期间点亮（LED 索引 0 = R1C1）。
+    if (layer_key_pressed && get_highest_layer(layer_state | default_layer_state) == POC_CODEX_LAYER && POC_LAYER_KEY_LED >= led_min && POC_LAYER_KEY_LED < led_max) {
+        RGB_MATRIX_INDICATOR_SET_COLOR(POC_LAYER_KEY_LED, 255, 255, 255);
     }
     return true;
 }

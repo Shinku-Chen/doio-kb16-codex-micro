@@ -404,7 +404,7 @@ static void test_edges_switches_and_wrap(void) {
     assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
     keyboard(0, 0x06);
     render();
-    assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
+    assert_label("C");
     puts("PASS: all OLED frames keep margins, bound long chords, clear stale layer input and handle held sources/default layers/timer wrap");
 }
 
@@ -551,7 +551,7 @@ static void test_visible_codex_entry(void) {
     render();
     feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"c\":5009407,\"b\":0,\"e\":1}]}");
     layer_state = 1UL << POC_CODEX_LAYER;
-    keyboard(0, 0x06);
+    keyboard(0, 0);
     rgb_suspended = true;
     fake_timer = 5000;
     render();
@@ -567,6 +567,53 @@ static void test_visible_codex_entry(void) {
     render();
     assert(display_active && memcmp(screen, codex_splash, sizeof(screen)) != 0);
     puts("PASS: Codex entry starts its full one-second logo at the first visible frame despite early input, host RGB off or USB suspend");
+}
+
+static void test_codex_custom_output(void) {
+    reset_screen(POC_CODEX_LAYER);
+    render();
+    keyboard(8, 0x06);
+    render();
+    assert_label("GUI+C");
+    fake_timer = 5000;
+    render();
+    assert_label("GUI+C");
+    keyboard(0, 0);
+    fake_timer += OLED_KEY_IDLE_MS - 1;
+    render();
+    assert_label("GUI+C");
+    ++fake_timer;
+    render();
+    assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
+    feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"c\":5009407,\"b\":1,\"e\":4}]}");
+    render();
+    uint8_t tasks[sizeof(screen)];
+    memcpy(tasks, screen, sizeof(tasks));
+    keyboard(0, 0x04);
+    keyboard(0, 0);
+    keyboard(0, 0x05);
+    render();
+    assert_label("B");
+    keyboard(0, 0);
+    fake_timer += OLED_KEY_IDLE_MS;
+    render();
+    assert(memcmp(screen, tasks, sizeof(screen)) == 0);
+    report_extra_t extra = {.report_id = REPORT_ID_CONSUMER, .usage = 0xE9};
+    send_extra(&extra);
+    render();
+    assert_label("VOL UP");
+    extra.usage = 0;
+    send_extra(&extra);
+    fake_timer += OLED_KEY_IDLE_MS;
+    render();
+    assert(memcmp(screen, tasks, sizeof(screen)) == 0);
+    layer_state = 1;
+    render();
+    assert_digit('1');
+    layer_state = 1UL << POC_CODEX_LAYER;
+    render();
+    assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
+    puts("PASS: Codex custom HID output shows held chords, macro keys and media labels, then restores tasks or logo after 900 ms without stale layer input");
 }
 
 static void test_via_boot_waiting(void) {
@@ -606,6 +653,7 @@ int main(void) {
     test_codex_host_display_power();
     test_empty_codex_logo();
     test_visible_codex_entry();
+    test_codex_custom_output();
     test_via_boot_waiting();
     return 0;
 }

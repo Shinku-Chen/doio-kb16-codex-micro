@@ -30,10 +30,14 @@ void test_set_color(uint8_t index, uint8_t red, uint8_t green, uint8_t blue);
 #define RGB_MATRIX_SOLID_COLOR 1
 
 typedef struct { uint8_t row, col; } keypos_t;
-typedef struct { struct { bool pressed; } event; } keyrecord_t;
+typedef struct {
+    struct { keypos_t key; bool pressed; uint16_t time; } event;
+    struct { uint8_t count; bool interrupted; } tap;
+} keyrecord_t;
 
 void layer_move(uint8_t layer);
 void default_layer_set(layer_state_t state);
+void process_record(keyrecord_t *record);
 uint16_t keycode_at_keymap_location_raw(uint8_t layer, uint8_t row, uint8_t col);
 uint16_t keycode_at_encodermap_location_raw(uint8_t layer, uint8_t index, bool clockwise);
 uint16_t dynamic_keymap_get_keycode(uint8_t layer, uint8_t row, uint8_t col);
