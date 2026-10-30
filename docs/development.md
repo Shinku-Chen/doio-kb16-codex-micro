@@ -10,6 +10,12 @@
 
 63 项固件离线检查（C 使用 ASan/UBSan）及 13 项打包检查通过，本地 QMK 编译通过；正式附件仍必须走下述 Actions 流程。新增覆盖全灭不关屏、空任务 Logo、B=0/黑色仍分配、扩展槽布局边界、USB 挂起期间不消耗入层展示时间、共享一小时边界/续时/唤醒。新版尚未刷入，设备仍为下面已验收的 `0.4.8-qmk`；不能把离线结果当作新版实机验收。
 
+2026-10-30 [v0.4.9 发布运行 41044351686](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41044351686) 的 build/release 均成功，[同源码 main 构建 41044339468](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41044339468) 成功。标签及 BUILD-INFO 的源码/构建脚本均为 `f5f37511f1a653bea86e5d873d26bb04c63d2f65`，固定 QMK/CLI/编译器未变。五份附件均由 `github-actions[bot]` 上传；回下载后校验和、完整附件集、来源、DFU CRC/向量及 BIN/HEX 一致性检查通过，未使用本机镜像替代。
+
+- 正式 BIN 50,880 字节（含 16 字节 suffix，应用主体 50,864），SHA-256 `d3d29be20543a63842f013387413dc27cbf5ea7045ef0a90a8a5a827d972de3f`。
+- HEX 143,128 字节，SHA-256 `d80528d321c6f7ca9f6854ccf748d700f602f621fec6ee7d6321e61b412f5079`；VIA 定义不变。其余哈希以本次 `SHA256SUMS` 为准。
+- 本地链接镜像 50,862 字节，`.data` 1,220、`.bss` 10,348、栈 3,072、剩余堆 5,836 字节，静态 RAM 与上版相同。正式附件另存仓库外 `固件构建/v0.4.9-qmk-ci/`；没有刷机、发送模拟灯光或修改 App。
+
 ## 正式发布：必须由流水线生成
 
 以下为 v0.4.8 的流水线历史：2026-10-30 已完成正式重建，[发布运行 41041000839](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41041000839) 的 build/release 均成功；[main 自动构建 41041022770](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41041022770) 也通过。云端 60 项固件回归、13 项打包检查、QMK 编译和来源/镜像检查均通过。发布脚本提交 `6694bb320eb24949c1fbd772e91fd4dce9c09eba`，固件源码仍为原标签 `6242c8fe1dca9ffb52ffa880243cefa712cee5e5`，没有移动标签或刷机。
