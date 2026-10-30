@@ -8,7 +8,7 @@
 
 ## 固件下载与当前版本
 
-> **开发中 `0.5.0-qmk`**：Codex L3 新开放两个顶部方键、A/B 按下和左下角，共五处 VIA 自定义；**长按一秒回 L0 移到左上方键**，短按执行其 VIA 配置，左下方键完全按 VIA 第四页执行。OLED 显示实际输出，松开约 900 ms 回任务/Logo。下方键位图/表已更新为开发源码；设备仍是 `0.4.9-qmk`，新版尚未发布或刷入，详见 [五处改键说明](docs/codex-via-keys.md)。
+> **测试版 `0.5.0-qmk` 已刷入**：Codex L3 新开放两个顶部方键、A/B 按下和左下角，共五处 VIA 自定义；**长按一秒回 L0 移到左上方键**，短按执行其 VIA 配置，左下方键完全按 VIA 第四页执行。OLED 显示实际输出，松开约 900 ms 回任务/Logo。[main 流水线固件](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41049425620) 已校验、刷入并返回新版和默认 L3；未创建 Release，实体改键/切层/OLED 新行为仍待验收，详见 [五处改键说明](docs/codex-via-keys.md)。
 
 - **[v0.4.9-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.9-qmk)**：固件 `.bin` / `.hex`、VIA 定义、`BUILD-INFO.json` 和 `SHA256SUMS`。
 - 本版修复任务灯全灭导致 OLED 黑屏：**屏幕独立息屏，无任务灯分配时保留 Logo+CODEX，进入 Codex 先展示完整 1 秒 Logo**。背光、键位存储、10 秒 VIA 窗口及 1 秒退出不变。`0.4.9-qmk` 流水线固件已刷入，版本和 Codex 入层 Logo 已实机确认；一小时息屏及按键唤醒按用户选择跳过，尚未实测。

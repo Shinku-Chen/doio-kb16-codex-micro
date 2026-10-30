@@ -10,6 +10,16 @@
 
 本地链接 BIN 为 51,402 字节（未添加发布用 DFU suffix），`.data` 1,220、`.bss` 10,352、栈 3,072、剩余堆 5,832 字节；比 0.4.9 静态 RAM 增加 4 字节，仍在板级预算内。开发验证阶段未发布或刷机，实机仍为下述 0.4.9。用户随后授权提交推送本次改动，仅通过 main 流水线构建后刷入，不创建 Release；实际刷写必须核验该运行的来源与附件，不能上传或使用本地镜像代替。
 
+### 0.5.0 流水线测试固件刷写
+
+2026-10-30 用户授权提交推送本次改动、仅通过流水线构建后刷入、不创建 Release。源码提交为 `cb3aafbd2a3a81d0591a440a18a76767d9c4318c`，[main 运行 41049425620](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41049425620) 构建成功，69 组固件检查、13 项打包测试、QMK 编译及附件校验步骤均通过；release job 跳过，没有创建版本标签或发布附件。
+
+- 下载 Artifact `firmware-0.5.0-qmk-cb3aafbd2a3a`（id `12973662645`），ZIP SHA-256 `35b917e49d00ca6eaba3666d184fa7e0136bfdc524d0a0d21dbeae11bf4d1a20` 与 GitHub 返回 digest 一致；完整五份附件、各文件校验和、来源提交/运行、固定工具链、DFU CRC/向量、BIN/HEX 一致性及 VIA 定义均通过检查。`release_tag` 为空，明确是 main 测试产物而非 Release。
+- 流水线 BIN 51,420 字节，含 16 字节 DFU suffix，应用主体 51,404 字节；SHA-256 `1812f3bea975285c21ec44b9624b2d25446625edd01ffc78dd6d709bfaa6198d`。BUILD-INFO SHA-256 `b7876ef482ca3177808db52a81c8e9fe85beb2572397737d4150d3f3cdbf7f4d`。本地镜像哈希虽相同，本次实际使用的是下载并校验来源的流水线文件。
+- 官方回退镜像 SHA-256 `0d1f21580b81d88f0e9e4a1bb87ae5a7a96f72677d12864651b6a0624cccac01` 再次核验。发现唯一 Maple `1EAF:0003`，路径 `32-1.3.1`、devnum 19、serial `LLM 003`；只写 alt 2 应用区 `0x08002000`，一次下载达到 100% / `Download done.`。复位返回 74 后未重复刷写，未修改 Bootloader/读保护、未发全量 EEPROM 重置命令；五处清空是新版自身的首次升级迁移。
+- 重新枚举为 `303A:8360`、Raw HID `FF00:0001`，路径 `DevSrvsID:4295347609`。`sys.version`（2.65 ms）和 `device.status`（3.86 ms）均返回 `0.5.0-qmk`；宿主层号 1 对应默认 QMK L3。查询工具已关闭，不留常驻工具，没有注入灯光或模拟实体输入。
+- 流水线附件留在仓库外 `固件构建/v0.5.0-qmk-ci/run-41049425620/bundle/`，日志为 `/tmp/kb16-flash-v0_5_0-ci-20261030.log` 与 `/tmp/kb16-probe-v0_5_0-ci-20261030.log`。本次未做 Flash 读回；左上退出、左下不强制退出、五处 VIA 自定义和 OLED 提示仍待用户分别验收，一小时息屏/唤醒仍不沿用旧版结果。
+
 ## 0.4.9：OLED 独立息屏与 Codex Logo
 
 用户反馈任务全部结束后 OLED 熄灭、进入 Codex 也看不到 Logo。根因是 OLED 在绘制前共用了 RGB 的聚合关灯条件；宿主清除任务/环境灯会提前 `oled_off()`，连入层 Logo 也被跳过。
