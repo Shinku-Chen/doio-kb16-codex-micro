@@ -10,9 +10,29 @@ Turn a **DOIO KB16-01 Rev2** into a Codex Micro-compatible controller while keep
 
 - **[v0.4.8-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.8-qmk)** includes `.bin`, `.hex`, the VIA definition, `BUILD-INFO.json` and `SHA256SUMS`.
 - This version shortens the startup VIA window to **10 seconds** and the Codex bottom-left exit hold to **1 second**. Lighting, OLED rendering and layout storage logic are otherwise unchanged.
-- `0.4.7-qmk` was flashed, verified through version replies and reported working by the user. See [development notes](docs/development.md) for build/offline validation; **the new 0.4.8 timing version was not flashed as part of this release**.
+- The pipeline-built `0.4.8-qmk` has been flashed and hardware-checked: version replies, the approximately 10-second cold-start display, no switch on a short tap, exit to L0 after about a 1-second hold, and return to Codex all passed. Host monitoring also captured the four-layer route; hand timing is not precision measurement. See [development notes](docs/development.md).
 - Git contains source, definitions and documentation, not firmware binaries. Binaries are Release assets. Back up before upgrading: EEPROM compatibility with arbitrary older firmware is not guaranteed.
 - **Official assets are built from tagged source and published by [GitHub Actions](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/workflows/firmware.yml), not uploaded from a local build.** `BUILD-INFO.json` records source/QMK/compiler versions, workflow URL and asset hashes. Use the attached `SHA256SUMS`; the 0.4.8 assets have been [rebuilt and replaced by CI](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41041000839) without moving the tag.
+
+## Flashing: open the case and use internal RESET
+
+**The KB16-01 Rev2 used by this project requires opening the case and pressing the PCB's internal `RESET` button. Historical references to `RET` do not imply an externally accessible reset button; follow the internal button on the actual PCB. Ordinary keys and VIA layer actions cannot replace hardware reset.**
+
+1. Export your VIA layout, retain the official recovery image, and download the pipeline Release assets. Verify their origin in `BUILD-INFO.json` and hashes in `SHA256SUMS`.
+2. **Unplug USB before opening the case.** Expose the internal `RESET`, place the PCB on an insulating surface and avoid metal shorts. Do not manipulate BOOT/SWD pads or read protection.
+3. Reconnect USB, start the waiting flashing command first, then briefly press and release the **internal `RESET`**. Confirm Maple DFU `1EAF:0003` and alt 2, `Upload to Flash 0x8002000`; write only the application, never the bootloader.
+
+```bash
+# Run from the downloaded firmware directory, then press internal RESET.
+dfu-util -w -a 2 -d 1EAF:0003 \
+  -D doio_kb16_rev2_codex_micro_v0.4.8-qmk.bin
+```
+
+4. Do not disconnect or reset during download. If the board only restarts, ensure the waiting command is still running before retrying internal RESET. Stop on `UNKNOWN` / `LIBUSB_ERROR_PIPE`, power-cycle and re-enter DFU; never mass-erase or unprotect.
+5. After download, verify re-enumeration and the running version; **do not blindly reflash because the reset stage returns `74`**. This version transfers 50,832 application bytes; the 50,848-byte BIN also includes its 16-byte DFU suffix. Do not pass Intel HEX to the raw BIN command.
+6. **Cold-start acceptance uses no reset button:** unplug for 5 seconds, reconnect normally without pressing RET/internal RESET/other keys, and keep VIA closed. Expect `VIA WAITTING` for about 10 seconds, then Codex L3. Hold bottom-left about 1 second to reach L0 (OLED `1`); use `TO(3)` to return.
+
+See [flashing and recovery](docs/usage.md). Screen text and manual hold timing require human observation; USB timing is supporting evidence only.
 
 ## Four layers: the fourth is Codex
 

@@ -22,7 +22,7 @@ VIA（启动窗口） ── VIA Raw ──> KB16 EEPROM ──> L0–L2 普通�
 
 Raw HID 中断 OUT 按 USB 报告边界分派，兼容 64 字节带 ID 和 63 字节报告体；控制 `SET_REPORT(Output)` 在中断中入队，主循环处理。错误 ID/类型/长度和满控制队列会拒绝控制请求，不在中断中解析 JSON 或写 EEPROM。
 
-`device.status.layer_index` 使用原生 Codex 槽为 1 的宿主编号：QMK L3→1，QMK L0/L1/L2→2/3/4，计算包含默认层，不是 VIA 编辑层号。当前源码与实机已核验为 `0.4.7-qmk`，新 HID 路径 `4295341242` 的版本（3.2 ms）和状态（3.9 ms）均应答，当前宿主层号 1 即 L3；启动页改动不改协议。旧切层验收仍保留，VIA 第四页只存储不执行，AG 输入不依赖灯分配；不能用本次版本确认替代 VIA/新画面验收。
+`device.status.layer_index` 使用原生 Codex 槽为 1 的宿主编号：QMK L3→1，QMK L0/L1/L2→2/3/4，计算包含默认层，不是 VIA 编辑层号。当前流水线 `0.4.8-qmk` 已刷入并通过 sys.version/device.status 核验；正常断电启动约 10 秒切到 Codex、默认 L3，监测捕获 L3→L0→L1→L2→L3，与用户确认短按不切层、约一秒退出/可返回一致。详细哈希、时序及目视验收边界见 `development.md`；不代表 VIA 第四页实际执行改键，也不扩大为其他功能验收。
 
 ## Channel 2 方法
 

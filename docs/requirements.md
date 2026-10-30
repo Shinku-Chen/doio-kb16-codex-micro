@@ -1,6 +1,6 @@
 # DOIO KB16 Codex Micro 固件需求文档
 
-> 当前定稿 `0.4.8-qmk`：四层（L0–L2 普通 VIA，L3 固定 Codex），上电 10 秒 VIA 窗口、Codex 左下角长按 1 秒回 L0；含留边 Logo/任务页及 VIA 实时输出。构建及离线验证通过，本版未刷入。
+> 当前定稿 `0.4.8-qmk`：四层（L0–L2 普通 VIA，L3 固定 Codex），上电 10 秒 VIA 窗口、Codex 左下角长按 1 秒回 L0；含留边 Logo/任务页及 VIA 实时输出。构建及离线验证通过，本版流水线固件已刷入并通过版本核验，10 秒启动与约一秒退出/返回获用户实机确认；不代表其他项目已重测。
 > 硬件：DOIO KB16-01 Rev2，APM32F103CBT6，128 KB Flash / 20 KB RAM。
 > 仓库只负责生成固件：QMK + VIA，不包含 Mapper；Git 不提交预编译产物，固件通过 GitHub Release 分发。
 

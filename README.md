@@ -10,9 +10,29 @@
 
 - **[v0.4.8-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.8-qmk)**：固件 `.bin` / `.hex`、VIA 定义、`BUILD-INFO.json` 和 `SHA256SUMS`。
 - 本版：上电 VIA 窗口 **10 秒**；Codex 层左下角 **长按 1 秒**回普通层。灯光、OLED 和键位存储逻辑不因本次改时长而重置。
-- `0.4.7-qmk` 已刷入、通过版本应答核验，用户反馈目前正常。`0.4.8-qmk` 的构建及离线验证记录见 [开发文档](docs/development.md)；**新时长版未在本次发布中刷入实机**。
+- `0.4.8-qmk` 流水线固件已刷入，版本应答及实机验收通过：正常插电约 10 秒等待页、短按不切层、长按约 1 秒回 L0、返回 Codex 均正常；主机同时捕获四层切换，不把手按时长当作仪器精测。详见 [开发文档](docs/development.md)。
 - Git 仓库只保存源码、定义和文档；编译产物只放 Release。升级前仍需备份，不保证任意旧固件的 EEPROM 都兼容。
 - **正式固件由 [GitHub Actions](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/workflows/firmware.yml) 从标签源码生成和发布，不使用本机编译附件。** `BUILD-INFO.json` 记录源码提交、QMK/编译器版本、流水线链接及资产摘要，最终校验和见 `SHA256SUMS`；0.4.8 已经 [流水线重建并替换附件](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41041000839)，原标签保持不动。
+
+## 刷机：拆机按内部 RESET
+
+**本项目这台 KB16-01 Rev2 需要拆开外壳，按 PCB 内部的 `RESET` 按键进入刷写流程。旧记录中的 `RET` 叫法不代表外壳外面有可直接操作的复位键，以内部 RESET 实物为准；普通键和 VIA 切层不能代替硬件复位。**
+
+1. 先导出 VIA 配置，准备官方回退镜像，下载流水线 Release 的全部附件（BIN/HEX、VIA 定义、`BUILD-INFO.json`、`SHA256SUMS`）并核对来源/哈希。
+2. **断开 USB 后再拆外壳**，露出 PCB 内部 `RESET`。将板子放在绝缘表面，避免金属工具短接；不要操作 BOOT/SWD 焊盘或改读保护。
+3. 接回 USB，在电脑先启动刷写等待，然后**短按内部 `RESET` 并松开**，捕获 Maple DFU `1EAF:0003`。目标必须是 alt 2 的 `Upload to Flash 0x8002000`；只写应用区，不写 Bootloader。
+
+```bash
+# 在固件文件所在目录执行；命令先等待设备，再按内部 RESET
+dfu-util -w -a 2 -d 1EAF:0003 \
+  -D doio_kb16_rev2_codex_micro_v0.4.8-qmk.bin
+```
+
+4. 下载期间不要拔线或再按复位。若只重启、没捕获 DFU，先确认等待命令仍在，再重新尝试内部 RESET；出现 `UNKNOWN` / `LIBUSB_ERROR_PIPE` 则停止，断电重新进入，不做全片擦除或解保护。
+5. 下载完成后核验重新枚举及版本，**不要仅因复位阶段返回 `74` 就重复刷写**。本版 DFU 下载主体是 50,832 字节，BIN 的 50,848 字节还含 16 字节 suffix；两者不矛盾。HEX 不是原始 BIN，不能传给上述命令。
+6. **验证正常开机时不按任何复位键**：拔 USB 等 5 秒，正常插回，不按 `RET`、内部 `RESET` 或其他键，不开 VIA。应显示 `VIA WAITTING` 约 10 秒，随后进入 Codex L3；左下角按住约 1 秒回普通 L0，屏幕显示 `1`，用 `TO(3)` 返回 Codex。
+
+首次刷写与回退的完整步骤、识别失败处理见 [使用与刷写](docs/usage.md)。屏幕文字和手按时长需要实机目视确认，USB 枚举计时只是辅助证据。
 
 ## 四层：第四层就是 Codex
 

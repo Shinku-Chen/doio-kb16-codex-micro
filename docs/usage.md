@@ -2,7 +2,7 @@
 
 ## 当前 QMK + VIA 固件（主实现）
 
-当前源码 `firmware/keymaps/codex_micro_via_v1` 为 `0.4.8-qmk`：10 秒 VIA 窗口、Codex 长按 1 秒回 L0；60 项离线检查和编译通过，本版未刷机。上一版 `0.4.7-qmk` 已刷入并获用户正常反馈。休眠/灯光及六格 OLED 不变；十三槽仍需宿主配套。
+当前源码 `firmware/keymaps/codex_micro_via_v1` 为 `0.4.8-qmk`：10 秒 VIA 窗口、Codex 长按 1 秒回 L0；流水线固件已刷入，`sys.version` 和 `device.status` 均核验新版。冷启动画面及手动时长单独验收，见 `development.md`。休眠/灯光及六格 OLED 不变；十三槽仍需宿主配套。
 
 - 上电 10 秒内收到有效 VIA 命令，就锁定 VIA 身份（`D010:1601`）直到断电。VIA 显示四页，L0–L2 是普通层，L3 页面仅保存改键、不执行。
 - 10 秒内没有 VIA 命令，键盘自动复位成 Codex 身份（`303A:8360`），默认 Layer 3，即 Codex 原生层。
@@ -20,7 +20,7 @@
 
 ### 1. 构建或获取固件
 
-Git 不存放预编译固件；可从 [Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.8-qmk) 下载 BIN/HEX、VIA 定义及 SHA256SUMS，或按 `development.md` 本地构建：
+Git 不存放预编译固件；正式刷写从 [Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.8-qmk) 下载流水线生成的 BIN/HEX、VIA 定义、BUILD-INFO.json 及 SHA256SUMS。核验源码提交和流水线链接，并在下载目录执行 `shasum -a 256 -c SHA256SUMS`。本地构建仅供开发验证，不替代正式发布附件：
 
 ```bash
 export QMK_HOME=~/qmk_firmware
@@ -32,7 +32,9 @@ qmk compile -kb doio/kb16/rev2 -km codex_micro_via_v1
 
 ### 2. 进入 Bootloader
 
-拔掉 USB，按住背面 `RET` 键，再插上 USB。用 `dfu-util -l` 确认出现：
+本项目这台 Rev2 需**拆机按 PCB 内部 `RESET`**。先断开 USB，再拆外壳，把 PCB 放在绝缘表面，避免金属工具短路；不要操作 BOOT/SWD 焊盘、擦 Bootloader 或修改读保护。
+
+接回 USB，先在电脑启动下面的等待刷写命令，再短按内部 `RESET` 并松开，以捕获短暂的 DFU 窗口。旧日志中的 RET 叫法不代表外壳外有可按的复位键；以内部实物为准，普通键或软件切层不能替代。也可用 `dfu-util -l` 先确认设备：
 
 ```text
 [1eaf:0003] STM32duino bootloader
@@ -41,10 +43,20 @@ qmk compile -kb doio/kb16/rev2 -km codex_micro_via_v1
 ### 3. 刷写
 
 ```bash
-dfu-util -a 2 -d 1EAF:0003 -D doio_kb16_rev2_codex_micro_via_v1.bin
+dfu-util -w -a 2 -d 1EAF:0003 -D doio_kb16_rev2_codex_micro_v0.4.8-qmk.bin
 ```
 
-刷完拔插一次：前 10 秒是 `D010:1601`（VIA 身份），10 秒内没有 VIA 连接就复位成 `303A:8360`（Codex Micro 身份）。
+alt 2 必须显示 `Upload to Flash 0x8002000`（应用起址 `0x08002000`）。只使用 BIN；HEX 不能当作原始二进制传给此命令。确保只有目标这台 DFU 设备，下载期间保持 USB 连接，不再按 RESET。
+
+本版成功下载主体为 50,832 字节，带 suffix 的 BIN 文件为 50,848 字节。若显示 100% / `Download done.` 后复位返回 `74`，先检查设备是否重新枚举、运行版本是否为 `0.4.8-qmk`，不要自动重复写入。若出现 `UNKNOWN` / `LIBUSB_ERROR_PIPE`，停止并断电，重新用内部 RESET 进入 DFU；不要用全片擦除、解保护或改 Bootloader 来试错。
+
+### 4. 正常断电启动与切层验收
+
+刷完后拔 USB 等 5 秒，再正常插回：**不按 RET、内部 RESET 或任何其他键，也不开 VIA**。前 10 秒为 `D010:1601`，OLED 应显示 `VIA WAITTING`；未收到 VIA 命令时自动复位成 `303A:8360`，进入 Codex L3，先 Logo+CODEX，再任务页。
+
+先短按左下角（不足 1 秒），应留在 Codex；再按住约 1 秒，应进入普通 L0，OLED 显示 `1`。通过已配置的 `TO(3)` 返回 Codex；默认布局可按右上旋钮 B 三次经 L1/L2 回 L3，已有配置以自己保存的键位为准。
+
+USB 从 VIA 枚举到 Codex 的时间只是启动窗口的近似观测，不等于精确量到通电时刻或看到了 OLED。屏幕原文、约 10 秒显示及手按约 1 秒切层需逐项目视确认。刷完的自动复位可能保留 Codex 标志，不能代替真正断电重插测试。
 
 ## ChatGPT / Codex 设置
 
@@ -83,13 +95,13 @@ dfu-util -a 2 -d 1EAF:0003 -D doio_kb16_rev2_codex_micro_via_v1.bin
 
 ## OLED
 
-`0.4.7-qmk` 已刷并获用户正常反馈；当前 `0.4.8-qmk` 将冷启动等待改为 10 秒，本版未刷入。不按 RET、真正断电再上电，才能观察完整 `VIA WAITTING` 流程。留边、Codex Logo/任务页、普通数字/按键页和休眠规则不变；详见 `oled.md`。
+`0.4.8-qmk` 流水线版本已刷并核验运行版本。正常冷启动不按 RET/内部 RESET，才可观察完整 `VIA WAITTING` 约 10 秒流程；画面和手动时长不以 RPC 成功替代。留边、Codex Logo/任务页、普通数字/按键页和休眠规则不变；详见 `oled.md`。
 
 ## 恢复官方 VIA 固件
 
 如果刷坏了或想回到 VIA：
 
-1. 进入 Bootloader（按住背面 `RET` 键插 USB）。
+1. 断开 USB 后拆机，接回 USB 并启动刷写等待，再按 PCB 内部 `RESET` 进入 Maple DFU；仍只写 alt 2 应用区。
 2. 刷入官方 Rev2 VIA 3.0 固件（例如 `2351080960doio-kb16_via（刷3.0）.bin`）。
 3. 如果 VIA 读不到键位，先导入匹配的 VIA 定义；必要时恢复应用配置默认值，不要擦除 Bootloader 或修改读保护。
 

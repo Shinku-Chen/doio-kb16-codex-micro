@@ -1,6 +1,6 @@
 # QMK + VIA 双模式固件（codex_micro_via_v1）
 
-当前源码：`firmware/keymaps/codex_micro_via_v1/`，版本 `0.4.8-qmk`，上电 10 秒窗口及 1 秒长按退出。60 项离线检查、QMK 编译通过，本版未刷机；已刷 `0.4.7-qmk` 获用户正常反馈。详细记录见 [开发](development.md)。
+当前源码：`firmware/keymaps/codex_micro_via_v1/`，版本 `0.4.8-qmk`，上电 10 秒窗口及 1 秒长按退出。60 项离线检查、QMK 编译通过，本版流水线固件已刷入并核验，10 秒等待及约一秒切层/返回实机通过；已刷 `0.4.7-qmk` 获用户正常反馈。详细记录见 [开发](development.md)。
 
 保留环境四灯呼吸、留边的 Codex Logo/任务页、VIA 层号/实际输出提示；USB 和四层结构不变，不包含直接启动双接口方案。
 
@@ -102,4 +102,4 @@ qmk compile -kb doio/kb16/rev2 -km codex_micro_via_v1
 SHA-256 0d1f21580b81d88f0e9e4a1bb87ae5a7a96f72677d12864651b6a0624cccac01
 ```
 
-进入 bootloader：按住背面 RET 插 USB，出现 `1EAF:0003` 后松开。仅按 [使用与刷写](usage.md) 的流程操作，不改 bootloader 或读保护。本次四层版已经刷入并核验运行版本，不需因复位步骤返回 `74` 而重复下载。
+进入 bootloader：断 USB 后拆机，接回 USB 并先启动刷写等待，再短按 PCB 内部 RESET 并松开，捕获 `1EAF:0003`。旧 RET 叫法不代表外壳上有外露复位键。仅按 [使用与刷写](usage.md) 操作，不改 bootloader 或读保护；下载完整后先核验版本，不因复位返回 `74` 就重复下载。正常冷启动验收不按任何复位键，不开 VIA。

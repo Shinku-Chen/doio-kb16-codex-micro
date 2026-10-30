@@ -41,15 +41,15 @@ Codex Micro 模式：
 ## Bootloader
 
 - Rev2 使用 STM32duino / Maple bootloader。
-- 本机已验证方式：背面实体 `RET` 复位/重插后捕获 `1EAF:0003`；需先启动监测，DFU 窗口可能短暂。2026-10-30 已通过这一路径刷入并启动 `0.2.0-qmk`，无需为此次刷写另试 BOOT。
+- 用户确认这台设备需要拆开外壳，使用 PCB **内部 `RESET`** 进入刷写流程；先断 USB 再拆机，板子置于绝缘面，接回 USB 后先启动刷写等待，再短按内部 RESET 并松开。2026-10-30 已捕获唯一 `1EAF:0003`、Maple alt 2 并刷入流水线 `0.4.8-qmk`，新版已应答。旧日志中的 RET 称呼保留为历史，不代表外壳有外露复位键，以内部 RESET 实物为准。
 - QMK Rev2 文档另列 Bootmagic（按住矩阵 `[0,0]` 后插 USB）及 `QK_BOOT`。Bootmagic 会重置 EEPROM，不作为保留 VIA 键位时的首选；按键布局里也必须实际配置了 `QK_BOOT` 才能使用该动作。
 - 刷写命令（QMK 文档）：
 
 ```bash
-dfu-util -a 2 -d 1EAF:0003 -D <firmware.bin>
+dfu-util -w -a 2 -d 1EAF:0003 -D <firmware.bin>
 ```
 
-刷完后拔插一次进入新固件。
+alt 2 必须对应 `Upload to Flash 0x8002000`，不写 Bootloader。刷完核验版本，再真正断电 5 秒后正常插回；此次不按 RET、内部 RESET 或其他键，不开 VIA，核对 10 秒等待页与 Codex 1 秒退出。完整步骤见 `usage.md`。
 
 ## 2026-10-29 实机核对
 

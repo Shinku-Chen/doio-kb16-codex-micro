@@ -116,14 +116,26 @@ PY
 ## 刷写
 
 ```bash
-dfu-util -a 2 -d 1EAF:0003 -D doio_kb16_rev2_codex_micro_via_v1.bin
+dfu-util -w -a 2 -d 1EAF:0003 -D doio_kb16_rev2_codex_micro_v0.4.8-qmk.bin
 ```
 
-进入 Bootloader：拔 USB，按住背面 `RET` 键，再插 USB；`dfu-util -l` 看到 `1EAF:0003` 后松开 `RET`。
+进入 Bootloader：按用户本机实物说明，先断 USB 拆外壳，露出 PCB 内部 RESET 并放在绝缘面；接回 USB，先启动上述等待命令，再短按内部 RESET 并松开。确认唯一 Maple `1EAF:0003`、alt 2 为 `Upload to Flash 0x8002000`，只写应用区；旧日志 RET 叫法仅保留历史，不意味着外壳有外露复位键。正常断电启动验收则不按 RET/内部 RESET，也不开 VIA，完整步骤见 `usage.md`。
 
 如果 `dfu-util` 显示 `UNKNOWN` 或 `-a 2` 返回 `LIBUSB_ERROR_PIPE`，断电重进一次。
 
-### 最新冷启动等待页构建（0.4.7-qmk）
+### 2026-10-30：刷入流水线 0.4.8-qmk 与正常冷启动
+
+固件来源为 Actions `41041000839`，BUILD-INFO 的源码 `6242c8fe1dca9ffb52ffa880243cefa712cee5e5`、构建脚本 `6694bb320eb24949c1fbd772e91fd4dce9c09eba`；BIN SHA-256 `8deaf0da59ca51b900276e1b3225496559035ce364c5a39e2554ed7efaf7e988`，回退官方镜像 SHA-256 `0d1f21580b81d88f0e9e4a1bb87ae5a7a96f72677d12864651b6a0624cccac01`，刷前均已重新核对，Release 附件上传者为 github-actions[bot]。
+
+按用户说明采用拆机内部 RESET 入口，监测捕获唯一 Maple `1EAF:0003`、devnum 60、路径 `32-1.3.1`、alt 2 / `0x08002000`，只下载一次。主体 50,832 字节 100% / Download done，复位返回 74 后未重刷；重新枚举为 Codex `303A:8360`，`sys.version`（4.6 ms）和 `device.status`（3.9 ms）均应答 `0.4.8-qmk`，宿主层号 1 即 QMK L3。未改 Bootloader/读保护、未做 Flash 读回，也未注入模拟灯光或重置 VIA 配置。
+
+之后用户不按 RET/内部 RESET、不开 VIA，真正断电重插：只读监测从 VIA `D010:1601` 首次可见到 Codex `303A:8360` 为约 10.265 秒，新 HID 路径 `4295344044`，再次返回 `0.4.8-qmk` 并默认 L3；全程未发送 VIA 命令。用户目视确认“约 10 秒后进入 Codex，显示正常”，因此启动等待页/约十秒时长已有人工确认。枚举时间含系统检测和复位开销，不是从通电瞬间精确计时。
+
+随后用户实机确认三项均正常：不足一秒短按不切层、长按约一秒回 L0 且屏幕显示 `1`、能返回 Codex。主机只读监测捕获实际 L3→L0→L1→L2→L3，变化出现在监测起点后 185.671 / 188.195 / 188.459 / 188.852 秒；这些是状态变化时刻，不是按住时长测量。约一秒是用户手按验收，精确 999/1000 ms 门限另由离线测试覆盖，不能宣称已用仪器测准一秒。
+
+临时监测已在返回 L3 后自动结束，只读版本/层状态，不改键位、灯光或 EEPROM，不留下常驻程序；当前为 Codex L3。本次通过的是 10 秒正常冷启动与一秒切层/返回，不代表一小时休眠、VIA 改键全量或十三灯槽宿主支持重新实测。刷写日志 `/tmp/kb16-flash-v0_4_8-ci-20261030.log`，冷启动/切层观测 `/tmp/kb16-accept-v0_4_8-ci-20261030.log`。
+
+### 历史冷启动等待页构建（0.4.7-qmk）
 
 2026-10-30 用户授权刷机，并要求取消 DOIO 页、开机三十秒显示 `VIA WAITTING`。检查发现 QMK `keyboards/doio/kb16/kb16.c` 在用户 renderer 之前强占五秒绘制 DOIO；通过当前 keymap 的 `OLED_LOGO_TIMEOUT=0` 取消该路径，最终 ELF 不再链接 `render_logo`。新增 `poc_mode_via_waiting()` 提供实际等待状态，收到 VIA 命令后显示普通页，无命令三十秒超时后按原逻辑进入 Codex。未改 Bootloader、读保护、四层、灯光/休眠策略或宿主。
 

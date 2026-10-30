@@ -2,7 +2,7 @@
 
 本仓库是 DOIO KB16-01 Rev2 的 Codex Micro 兼容固件与工具的工作副本。目标是把 16 键 + 3 旋钮 + 128×32 OLED 的 KB16 作为 Codex Micro 控制器使用。
 
-> 当前源码 `0.4.8-qmk`：上电 VIA 窗口 10 秒、Codex 左下角长按 1 秒回 L0；60 项离线检查及 QMK 编译通过，本版未刷机。上一版 `0.4.7-qmk` 已刷并获用户正常反馈，不据此推断新版时长或一小时休眠已实测。完整展示见 [中文 README](../README.md) / [English README](../README.en.md)。
+> 当前 `0.4.8-qmk` 流水线固件已刷入并核验版本；用户确认正常断电后约 10 秒 VIA WAITTING→Codex、短按不切层、约一秒回 L0 显示 1、能返回 Codex。主机观测四层路径一致；不扩大为精密计时、一小时休眠或 VIA 全量验收。刷机需拆外壳按 PCB 内部 RESET，详见 [使用与刷写](usage.md) / [开发记录](development.md)。完整展示见 [中文 README](../README.md) / [English README](../README.en.md)。
 
 ## 快速开始
 
