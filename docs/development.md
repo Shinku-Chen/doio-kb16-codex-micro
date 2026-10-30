@@ -1,6 +1,29 @@
 # 开发与构建
 
-## 当前状态
+## 正式发布：必须由流水线生成
+
+用户已纠正正式发布方式：不能把本机生成的 BIN/HEX 上传后当作正式发布。`.github/workflows/firmware.yml` 使用全新 Linux runner，从确定的源码提交和固定 QMK 基线进行测试、编译、校验及发布；本地构建仅用于开发。以下旧本地构建哈希仅作为历史记录，**下载包以 Release 当前 SHA256SUMS 与 BUILD-INFO.json 为准**，不使用旧表格校验流水线重建包。
+
+- main / PR：构建并保存 Actions Artifact；不发布正式版本。
+- 推送 `v*-qmk` 标签：校验标签等于 `v` + 固件版本后自动发布，不改标签。
+- Actions → Firmware → Run workflow：`release_tag` 留空只构建当前 ref；填已有标签可重建该版本。`replace_assets` 默认 false，只有用户授权替换才勾选。
+- 修正本次 v0.4.8：在 main 的最新流水线上指定 `release_tag=v0.4.8-qmk`、`replace_assets=true`，从原标签 `6242c8f…` 构建，保留原标签，不把较新 main 的固件代码冒充为旧标签。
+- 构建脚本和固件源码分开 checkout：BUILD-INFO.json 同时记录 automation_commit / source_commit、QMK commit、编译器、Python 依赖、runner 版本及 run URL。
+- 固定 Arm GNU Toolchain 15.3.Rel2 Linux x86_64，官方包 SHA-256 `463df9665c246fa13bab2102115bbf83440661b6eb70b44f3dfd4712ca30037a`；固定 QMK CLI 1.2.0，QMK/Actions 用完整提交。
+- 构建 job 只读；仅发布 job 可写 Release。发布前验证同仓库、同运行、源码与当前远端标签一致，以及五份附件/校验和完整；本地打包标记 local-validation，发布检查会拒绝。
+- BIN 包含 DFU suffix，校验 CRC、向量、应用区和双 HID 描述符；HEX 检查每条记录/地址、不允许 Bootloader 写入，与 BIN 应用内容一致。HEX 的链接节间空洞按 objcopy 的零填充比较；不把合法链接填充误判为镜像损坏。
+
+```bash
+gh workflow run firmware.yml --ref main \
+  -f release_tag=v0.4.8-qmk -f replace_assets=true
+python3 -m unittest discover -s firmware/ci -p 'test_*.py' -v
+```
+
+流水线生成 `doio_kb16_rev2_codex_micro_v<version>.bin/.hex`、`kb16_codex_via.json`、`BUILD-INFO.json`、`SHA256SUMS`。未通过所有检查不进入发布 job，不使用开发者电脑上的固件文件，也不刷硬件。当前步骤/最终结论应以实际 Actions run 为准，不能把“已添加 workflow”写成“流水线已成功”。
+
+工具链官方来源：[Arm GNU Toolchains](https://gitlab.arm.com/tooling/gnu-toolchains-for-arm/-/tree/releases/15.3.rel2)。GitHub 支持按 job 设置最小权限：[Workflow permissions](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#permissions)。
+
+## 0.4.8 初次本地构建记录（非当前正式产物）
 
 当前源码为 `0.4.8-qmk`（2026-10-30）：VIA 冷启动窗口 **10 秒**，Codex L3 左下角长按 **1 秒**回 L0，其他布局/USB/灯光/休眠语义不变。60 项 ASan/UBSan 离线检查和 QMK 编译通过；本次只构建及发布，**没有刷入新版**。上一版 `0.4.7-qmk` 已刷入并通过版本 RPC，用户随后反馈“目前没问题”；不据此声称新版时长或一小时休眠经过实机测量。
 

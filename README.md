@@ -8,10 +8,11 @@
 
 ## 固件下载与当前版本
 
-- **[v0.4.8-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.8-qmk)**：固件 `.bin` / `.hex`、VIA 定义和 `SHA256SUMS`。
+- **[v0.4.8-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.8-qmk)**：固件 `.bin` / `.hex`、VIA 定义、`BUILD-INFO.json` 和 `SHA256SUMS`。
 - 本版：上电 VIA 窗口 **10 秒**；Codex 层左下角 **长按 1 秒**回普通层。灯光、OLED 和键位存储逻辑不因本次改时长而重置。
 - `0.4.7-qmk` 已刷入、通过版本应答核验，用户反馈目前正常。`0.4.8-qmk` 的构建及离线验证记录见 [开发文档](docs/development.md)；**新时长版未在本次发布中刷入实机**。
 - Git 仓库只保存源码、定义和文档；编译产物只放 Release。升级前仍需备份，不保证任意旧固件的 EEPROM 都兼容。
+- **正式固件由 [GitHub Actions](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/workflows/firmware.yml) 从标签源码生成和发布，不使用本机编译附件。** `BUILD-INFO.json` 记录源码提交、QMK/编译器版本、流水线链接及资产摘要，最终校验和见 `SHA256SUMS`；此前本机上传的 0.4.8 附件改由流水线重建替换，标签保持不动。
 
 ## 四层：第四层就是 Codex
 
@@ -189,6 +190,22 @@ R4     回 L0    ACT10    ACT11    ACT12
 
 本项目不是官方固件，不保证所有 App 版本、原厂扩展命令、动画或外设功能完全一致。宿主侧功能绑定与灯态通信依赖支持 Codex Micro 的 App；**普通层不运行 App 也可用**。
 
+## 流水线构建与发布
+
+- 推送 `main` 或提交 PR：运行固件回归、发布包安全检查和 QMK 编译，产物可在 Actions 的 Artifacts 下载，不自动发布正式版本。
+- 推送 `v*-qmk` 标签：构建该标签源码，验证标签与固件版本完全相同，再自动发布 Release。
+- 手动运行 `Firmware`：`release_tag` 留空只构建；填写已有版本标签则按该标签重建并发布，不移动标签。已有同名附件默认拒绝覆盖，仅勾选 `replace_assets` 时替换。
+- 固定 QMK commit、QMK CLI 1.2.0、Arm GNU Toolchain 15.3.Rel2，并用固定 SHA-256 校验工具链下载；Actions 本身固定完整提交。构建 job 只读，只有通过验证的发布 job 有写权限，不需要额外 PAT。
+
+例如重新生成本次 Release（不是上传本地文件）：
+
+```bash
+gh workflow run firmware.yml --ref main \
+  -f release_tag=v0.4.8-qmk -f replace_assets=true
+```
+
+流水线检查 DFU CRC、应用向量/地址、BIN 与 HEX 一致性、版本/USB 描述符、VIA 定义，以及附件确实来自当前仓库/本次运行，再发布 BIN、HEX、VIA JSON、`BUILD-INFO.json` 和 `SHA256SUMS`。构建失败不会进入发布 job，也不会刷键盘。
+
 ## 自行构建与测试
 
 使用**单独的 QMK 源码树**，基线固定为 `f5db962110615fd263c3ebf9f0402e7c2b08fbe4`。需要 QMK CLI、带 newlib 的 Arm GNU Toolchain；离线测试还需 Python 3 和 Clang。不要在有其他修改的 QMK 工作区上直接覆盖 core patch。
@@ -201,7 +218,7 @@ qmk compile -kb doio/kb16/rev2 -km codex_micro_via_v1
 QMK_HOME="$QMK_HOME" python3 firmware/keymaps/codex_micro_via_v1/tools/run_tests.py
 ```
 
-产物为 QMK 根目录的 `doio_kb16_rev2_codex_micro_via_v1.bin`。补丁脚本会检查基线，并复制 keymap、USB/VIA/ChibiOS/WS2812 补丁；不要只复制 `keymap.c`。构建、恢复、SHA-256 和验证边界见 [开发](docs/development.md) / [刷写](docs/usage.md)。
+产物为 QMK 根目录的 `doio_kb16_rev2_codex_micro_via_v1.bin`，供本地开发验证，不能作为正式 Release 附件。补丁脚本会检查基线，并复制 keymap、USB/VIA/ChibiOS/WS2812 补丁；不要只复制 `keymap.c`。构建、恢复、SHA-256 和验证边界见 [开发](docs/development.md) / [刷写](docs/usage.md)。
 
 再生成本页 OLED 预览（测试输出目录需先创建）：
 

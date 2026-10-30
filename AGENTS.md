@@ -26,6 +26,8 @@ docs/                                  使用、硬件、协议、OLED、开发�
 
 ## 构建与验证
 
+正式固件必须由 `.github/workflows/firmware.yml` 在 GitHub Actions 从源码测试、编译、校验并发布，不能把本地编译上传当成正式产物。本地构建仅用于开发验证。版本标签必须等于 `v` + 固件版本；旧标签重建用 workflow_dispatch 的 `release_tag`，不能移动标签；只有用户明确要求替换附件才传 `replace_assets=true`。Release 必须包含 `BUILD-INFO.json` 和 `SHA256SUMS`，可追溯源码、QMK、编译器及流水线。构建只读，发布 job 才有 contents:write，不额外存 PAT；CI 不刷硬件。
+
 > 当前主实现是 `firmware/keymaps/codex_micro_via_v1`（QMK + VIA 双模式）。`kb16-fw/` Rust 尝试已放弃。仓库不提交 `.bin` / `.hex` / `.uf2` 等构建产物。
 
 2026-10-30 最新实机 `0.4.7-qmk` 已刷入并通过 RPC 核验，用户随后反馈“目前没问题”。当前源码 `0.4.8-qmk` 将 VIA 冷启动窗口从 30 秒缩为 10 秒、Codex 退出长按从 5 秒缩为 1 秒；60 项离线检查及 QMK 编译通过，本版未刷机。固件通过 GitHub Release 分发，Git 不提交 BIN/HEX；双语 README 展示当前键位/灯效及从测试帧生成的 OLED 画面，不能称为实机照片。完整哈希与验收边界见 `docs/development.md`。

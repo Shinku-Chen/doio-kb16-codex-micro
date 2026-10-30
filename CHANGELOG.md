@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- 按用户纠正改为 GitHub Actions 从源码测试、编译并发布固件，禁止将本机构建附件当作正式 Release；main/PR 构建仅存 Artifact，版本标签自动发布，手动指定旧标签可重建且不移动标签，默认禁止覆盖附件，显式 `replace_assets` 才替换。
+- 固定 QMK/CLI、Arm 工具链及其 SHA-256、Actions 提交；分离只读构建与写权限发布。增加 BIN/HEX/DFU/VIA 校验、当前仓库/运行来源验证、BUILD-INFO.json 和校验清单，以及打包回归测试。更新双语 README、发布说明和开发流程；本次不改变固件行为、不刷机。
+
 ## 0.4.8-qmk — 2026-10-30
 
 - 将上电 VIA 协商窗口由 30 秒缩为 10 秒，L3 左下角退出到 L0 的长按门限由 5 秒缩为 1 秒；USB 身份、四层及 EEPROM 存储不变。

@@ -13,3 +13,5 @@ firmware/releases/
 **/bin/
 **/obj/
 kb16-fw/target/
+__pycache__/
+*.py[cod]

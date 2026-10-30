@@ -8,10 +8,11 @@ Turn a **DOIO KB16-01 Rev2** into a Codex Micro-compatible controller while keep
 
 ## Download and version
 
-- **[v0.4.8-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.8-qmk)** includes `.bin`, `.hex`, the VIA definition and `SHA256SUMS`.
+- **[v0.4.8-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.4.8-qmk)** includes `.bin`, `.hex`, the VIA definition, `BUILD-INFO.json` and `SHA256SUMS`.
 - This version shortens the startup VIA window to **10 seconds** and the Codex bottom-left exit hold to **1 second**. Lighting, OLED rendering and layout storage logic are otherwise unchanged.
 - `0.4.7-qmk` was flashed, verified through version replies and reported working by the user. See [development notes](docs/development.md) for build/offline validation; **the new 0.4.8 timing version was not flashed as part of this release**.
 - Git contains source, definitions and documentation, not firmware binaries. Binaries are Release assets. Back up before upgrading: EEPROM compatibility with arbitrary older firmware is not guaranteed.
+- **Official assets are built from tagged source and published by [GitHub Actions](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/workflows/firmware.yml), not uploaded from a local build.** `BUILD-INFO.json` records source/QMK/compiler versions, workflow URL and asset hashes. Use the attached `SHA256SUMS`; the previously local-built 0.4.8 assets are being replaced through CI without moving the tag.
 
 ## Four layers: the fourth is Codex
 
@@ -190,7 +191,23 @@ See the detailed [light tables](docs/lighting.md) and [compatibility assessment]
 
 This is unofficial firmware, with no guarantee for every app version, extension command, animation or peripheral feature. Host action bindings and task lighting require an app supporting Codex Micro. **Ordinary layers work without that app running.**
 
-## Build and test
+## Pipeline builds and releases
+
+- Pushes to `main` and pull requests run regression and bundle checks plus QMK compilation. Download development builds from Actions Artifacts; they do not automatically become Releases.
+- Pushing a `v*-qmk` tag builds that tag and publishes only if its version exactly matches the firmware version.
+- Run `Firmware` manually: leave `release_tag` empty for a build only, or provide an existing version tag to rebuild/release it without moving the tag. Existing assets are not overwritten unless `replace_assets` is explicitly enabled.
+- QMK commit, QMK CLI 1.2.0 and Arm GNU Toolchain 15.3.Rel2 are pinned. The toolchain archive has a pinned SHA-256, and Actions use full commit SHAs. The build job is read-only; only the validated release job has write access. No extra PAT is required.
+
+To rebuild this Release through CI rather than upload local files:
+
+```bash
+gh workflow run firmware.yml --ref main \
+  -f release_tag=v0.4.8-qmk -f replace_assets=true
+```
+
+The pipeline validates DFU CRC, application addresses/vectors, BIN/HEX equivalence, version/USB descriptors, VIA definition and same-repository/run provenance. It publishes BIN, HEX, VIA JSON, `BUILD-INFO.json` and `SHA256SUMS`. Failed builds cannot enter the release job. CI never flashes hardware.
+
+## Build and test locally
 
 Use a **dedicated QMK tree** pinned to `f5db962110615fd263c3ebf9f0402e7c2b08fbe4`. Install QMK CLI and an Arm GNU Toolchain with newlib; offline tests also require Python 3 and Clang. Do not overwrite core files in a QMK tree containing unrelated work.
 
@@ -202,7 +219,7 @@ qmk compile -kb doio/kb16/rev2 -km codex_micro_via_v1
 QMK_HOME="$QMK_HOME" python3 firmware/keymaps/codex_micro_via_v1/tools/run_tests.py
 ```
 
-Output: `doio_kb16_rev2_codex_micro_via_v1.bin` in the QMK root. The installer verifies the baseline and copies the keymap plus USB/VIA/ChibiOS/WS2812 patches: copying only `keymap.c` is insufficient. See [development](docs/development.md) and [flashing/recovery](docs/usage.md) for build records, checksums and validation limits.
+Output: `doio_kb16_rev2_codex_micro_via_v1.bin` in the QMK root, for local development/validation only, not official Release uploads. The installer verifies the baseline and copies the keymap plus USB/VIA/ChibiOS/WS2812 patches: copying only `keymap.c` is insufficient. See [development](docs/development.md) and [flashing/recovery](docs/usage.md) for build records, checksums and validation limits.
 
 Regenerate the README OLED previews:
 

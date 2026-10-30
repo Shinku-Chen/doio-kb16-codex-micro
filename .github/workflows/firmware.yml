@@ -1,0 +1,147 @@
+name: Firmware
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*-qmk"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "发布已有标签；留空只构建当前分支"
+        type: string
+        default: ""
+      replace_assets:
+        description: "允许用流水线产物替换该 Release 的同名附件"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firmware-${{ inputs.release_tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  QMK_COMMIT: f5db962110615fd263c3ebf9f0402e7c2b08fbe4
+  ARM_TOOLCHAIN: arm-gnu-toolchain-15.3.rel2-x86_64-arm-none-eabi
+  ARM_ARCHIVE_SHA256: 463df9665c246fa13bab2102115bbf83440661b6eb70b44f3dfd4712ca30037a
+  QMK_HOME: ${{ github.workspace }}/qmk
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      release_tag: ${{ steps.bundle.outputs.release_tag }}
+      source_commit: ${{ steps.bundle.outputs.source_commit }}
+      artifact_name: ${{ steps.bundle.outputs.artifact_name }}
+    steps:
+      - name: Checkout build automation
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: automation
+          persist-credentials: false
+      - name: Checkout firmware source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
+          path: source
+          persist-credentials: false
+      - name: Checkout pinned QMK
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: qmk/qmk_firmware
+          ref: ${{ env.QMK_COMMIT }}
+          path: qmk
+          persist-credentials: false
+      - name: Initialize pinned QMK submodules
+        run: git -C qmk submodule update --init --recursive --depth 1 lib/chibios lib/chibios-contrib lib/lufa lib/printf
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Install build and test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends build-essential clang libhidapi-hidraw0 libusb-1.0-0-dev dfu-util
+          python -m pip install 'qmk==1.2.0' -r qmk/requirements.txt
+      - name: Install verified Arm GNU Toolchain 15.3.Rel2
+        env:
+          ARM_DOWNLOAD_BASE: https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel2
+        run: |
+          curl --fail --location --retry 3 "$ARM_DOWNLOAD_BASE/$ARM_TOOLCHAIN.tar.xz" --output "$RUNNER_TEMP/arm.tar.xz"
+          echo "$ARM_ARCHIVE_SHA256  $RUNNER_TEMP/arm.tar.xz" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/arm-toolchain"
+          tar -xJf "$RUNNER_TEMP/arm.tar.xz" --strip-components=1 -C "$RUNNER_TEMP/arm-toolchain"
+          echo "$RUNNER_TEMP/arm-toolchain/bin" >> "$GITHUB_PATH"
+      - name: Test release packaging
+        run: python -m unittest discover -s automation/firmware/ci -p 'test_*.py' -v
+      - name: Apply firmware patches
+        run: ./source/firmware/apply-core-patches.sh
+      - name: Run firmware regression checks
+        run: python source/firmware/keymaps/codex_micro_via_v1/tools/run_tests.py
+      - name: Build firmware from source
+        run: qmk compile -kb doio/kb16/rev2 -km codex_micro_via_v1
+      - name: Validate and package firmware
+        id: bundle
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag || (github.ref_type == 'tag' && github.ref_name) || '' }}
+        run: |
+          python automation/firmware/ci/release_bundle.py package \
+            --source source --qmk qmk --output "$RUNNER_TEMP/dist" --tag "$RELEASE_TAG"
+      - name: Upload pipeline artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ steps.bundle.outputs.artifact_name }}
+          path: ${{ runner.temp }}/dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    needs: build
+    if: needs.build.outputs.release_tag != '' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout release automation
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: automation
+          persist-credentials: false
+      - name: Download this run's firmware
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs.build.outputs.artifact_name }}
+          path: dist
+      - name: Verify source tag, bundle and provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.build.outputs.release_tag }}
+          SOURCE_COMMIT: ${{ needs.build.outputs.source_commit }}
+        run: |
+          remote_commit=$(gh api "repos/$GITHUB_REPOSITORY/commits/$RELEASE_TAG" --jq .sha)
+          test "$remote_commit" = "$SOURCE_COMMIT"
+          python automation/firmware/ci/release_bundle.py verify \
+            --bundle dist --tag "$RELEASE_TAG" --source-commit "$SOURCE_COMMIT" \
+            --notes "automation/docs/releases/$RELEASE_TAG.md" --output "$RUNNER_TEMP/release-notes.md"
+      - name: Publish only pipeline-built assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.build.outputs.release_tag }}
+          REPLACE_ASSETS: ${{ inputs.replace_assets || false }}
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            upload_flags=()
+            if [ "$REPLACE_ASSETS" = true ]; then
+              upload_flags+=(--clobber)
+            fi
+            gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" "${upload_flags[@]}" dist/*
+            gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$RUNNER_TEMP/release-notes.md"
+          else
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --verify-tag \
+              --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md" dist/*
+          fi
