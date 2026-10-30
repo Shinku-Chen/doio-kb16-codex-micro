@@ -41,11 +41,11 @@ See [flashing and recovery](docs/usage.md). Screen text and manual hold timing r
 | VIA page / QMK layer | Idle OLED | Runtime behavior | VIA edits executed? |
 |---|---|---|---|
 | **First / L0** | Logo/tasks, replaced by actual custom output | **Native Codex + five VIA keys** | Only five; native controls and rotations remain fixed |
-| Second / L1 | `2` | Ordinary keyboard | Keys and encoders |
-| Third / L2 | `3` | Ordinary keyboard | Yes |
-| Fourth / L3 | `4` | Ordinary keyboard | Yes |
+| Second / L1 | `1` | Ordinary keyboard | Keys and encoders |
+| Third / L2 | `2` | Ordinary keyboard | Yes |
+| Fourth / L3 | `3` | Ordinary keyboard | Yes |
 
-There is no fifth layer. VIA indices are zero-based; ordinary OLED numbers 2/3/4 match editor pages.
+There is no fifth layer. VIA indices are zero-based; ordinary OLED numbers 1/2/3 represent L1/L2/L3, editor pages 2/3/4. Display numbers are not VIA page numbers.
 
 ### Startup, VIA setup and switching
 
@@ -121,11 +121,11 @@ These images are generated from **actual 128×32 test framebuffers rendered by t
 
 ![Startup VIA WAITTING](docs/assets/oled-via-waiting.svg)
 
-**Ordinary idle:** L1 / L2 / L3 show centered `2` / `3` / `4`.
+**Ordinary idle:** L1 / L2 / L3 show centered `1` / `2` / `3`.
 
-![L1 number 2](docs/assets/oled-via-1.svg)
-![L2 number 3](docs/assets/oled-via-2.svg)
-![L3 number 4](docs/assets/oled-via-3.svg)
+![L1 number 1](docs/assets/oled-via-1.svg)
+![L2 number 2](docs/assets/oled-via-2.svg)
+![L3 number 3](docs/assets/oled-via-3.svg)
 
 **Ordinary input:** Actual outgoing HID key names/combinations, media or mouse output temporarily replace the number. For example `GUI+C` corresponds to a GUI modifier plus C, not a guarantee of an application action. The label remains while held and returns to the number about 900 ms after release. No input-method text is read and no keystroke log is stored.
 

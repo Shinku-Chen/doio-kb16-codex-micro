@@ -175,7 +175,7 @@ void oled_controller_render(void) {
         if (show_input) {
             draw_input();
         } else {
-            char label[] = {(char)('1' + current_layer), '\0'};
+            char label[] = {(char)('1' + current_layer - POC_NORMAL_FIRST_LAYER), '\0'};
             draw_centered(label, 9, 2);
         }
     }

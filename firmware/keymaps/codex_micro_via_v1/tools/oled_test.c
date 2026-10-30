@@ -182,7 +182,7 @@ static void test_via_idle_digits(void) {
     for (uint8_t layer = POC_NORMAL_FIRST_LAYER; layer < POC_VIA_LAYER_COUNT; ++layer) {
         reset_screen(layer);
         render();
-        assert_digit('1' + layer);
+        assert_digit('1' + layer - POC_NORMAL_FIRST_LAYER);
         char name[] = "via-1";
         name[4] += layer - POC_NORMAL_FIRST_LAYER;
         save_preview(name);
@@ -194,8 +194,8 @@ static void test_via_idle_digits(void) {
     layer_state = 0;
     default_layer_state = 1UL << 2;
     render();
-    assert_digit('3');
-    puts("PASS: VIA L1-L3 show centered 2/3/4 with safe margins, including default layers and unchanged-frame suppression");
+    assert_digit('2');
+    puts("PASS: VIA L1-L3 show centered 1/2/3, independently of editor pages 2/3/4 with safe margins, including default layers and unchanged-frame suppression");
 }
 
 static void test_codex_splash_and_tasks(void) {
@@ -225,7 +225,7 @@ static void test_codex_splash_and_tasks(void) {
     assert(screen_writes == before + 1);
     layer_state = 1UL << POC_NORMAL_FIRST_LAYER;
     render();
-    assert_digit('2');
+    assert_digit('1');
     layer_state = 1UL << POC_CODEX_LAYER;
     render();
     assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
@@ -282,7 +282,7 @@ static void test_keyboard_reports(void) {
     assert_label("GUI+C");
     fake_timer++;
     render();
-    assert_digit('2');
+    assert_digit('1');
     keyboard(3, 0x0C);
     render();
     assert_label("CTRL+SHIFT+I");
@@ -355,7 +355,7 @@ static void test_media_and_mouse_reports(void) {
     assert_label("MOVE LEFT");
     fake_timer += OLED_KEY_IDLE_MS;
     render();
-    assert_digit('3');
+    assert_digit('2');
     puts("PASS: media/brightness/rotary, system, mouse buttons, wheels and cursor reports use actual emitted usages");
 }
 
@@ -373,7 +373,7 @@ static void test_edges_switches_and_wrap(void) {
     assert(screen_writes == before);
     layer_state = 1UL << 3;
     render();
-    assert_digit('4');
+    assert_digit('3');
     keyboard(0, 0);
     keyboard(0, 0x04);
     render();
@@ -386,7 +386,7 @@ static void test_edges_switches_and_wrap(void) {
     keyboard(0, 0);
     fake_timer += OLED_KEY_IDLE_MS;
     render();
-    assert_digit('4');
+    assert_digit('3');
     reset_screen(1);
     fake_timer = UINT32_MAX - 200;
     keyboard(0, 0x05);
@@ -396,7 +396,7 @@ static void test_edges_switches_and_wrap(void) {
     assert_label("B");
     fake_timer = 700;
     render();
-    assert_digit('2');
+    assert_digit('1');
     reset_screen(1);
     layer_state = 0;
     default_layer_state = 1UL << POC_CODEX_LAYER;
@@ -439,7 +439,7 @@ static void test_display_power(void) {
     fake_timer = 180000;
     render();
     assert(display_active && screen_writes == writes);
-    assert_digit('2');
+    assert_digit('1');
     fake_timer = input_idle = POC_IDLE_SLEEP_MS;
     render();
     assert(!display_active && screen_writes == writes);
@@ -455,7 +455,7 @@ static void test_display_power(void) {
     display_active = false;
     render();
     assert(display_active && screen_writes == writes);
-    assert_digit('2');
+    assert_digit('1');
     puts("PASS: OLED uses one-hour fallback, heartbeat wake and USB suspend/resume without needing a changed display frame");
 }
 
@@ -481,7 +481,7 @@ static void test_codex_host_display_power(void) {
     layer_state = 1UL << POC_NORMAL_FIRST_LAYER;
     render();
     assert(display_active);
-    assert_digit('2');
+    assert_digit('1');
     layer_state = 1UL << POC_CODEX_LAYER;
     render();
     assert(display_active && poc_power_should_sleep());
@@ -609,7 +609,7 @@ static void test_codex_custom_output(void) {
     assert(memcmp(screen, tasks, sizeof(screen)) == 0);
     layer_state = 1UL << POC_NORMAL_FIRST_LAYER;
     render();
-    assert_digit('2');
+    assert_digit('1');
     layer_state = 1UL << POC_CODEX_LAYER;
     render();
     assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
@@ -632,7 +632,7 @@ static void test_via_boot_waiting(void) {
     via_waiting = false;
     layer_state = 1UL << POC_NORMAL_FIRST_LAYER;
     render();
-    assert_digit('2');
+    assert_digit('1');
     layer_state = 1UL << POC_CODEX_LAYER;
     render();
     assert(memcmp(screen, codex_splash, sizeof(screen)) == 0);
