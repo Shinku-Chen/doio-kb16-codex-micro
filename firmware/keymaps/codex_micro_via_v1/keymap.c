@@ -44,9 +44,6 @@ enum poc_keycodes {
 #define POC_CUSTOM_KEYS_STAMP 0x354B4333UL
 #define POC_CODEX_L0_STAMP 0x304C4334UL
 
-/* Layers 1-3 mirror the saved ordinary VIA layouts.
- * Layer 0 keeps native AG/ACT, joystick axes and encoder controls in flash.
- * All five spare key positions use VIA without a reserved long hold. */
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_VIA1] = LAYOUT(
         KC_ESC, G(KC_W), LSG(KC_A), G(KC_BSPC), TO(1),
@@ -106,10 +103,9 @@ static bool poc_codex_custom_position(keypos_t key) {
            (key.row == 1 && key.col == 4) || (key.row == 3 && key.col == 0);
 }
 
-static uint16_t poc_codex_custom_keycode(keypos_t key) {
-    uint16_t keycode = dynamic_keymap_get_keycode(POC_CODEX_LAYER, key.row, key.col);
-    if (keycode == KC_TRNS || (keycode >= AG00 && keycode <= LAYER_CYCLE)) {
-        return KC_NO;
+static uint16_t poc_codex_resolve_keycode(uint16_t keycode, uint16_t native_keycode) {
+    if (keycode == KC_NO || keycode == KC_TRNS || (keycode >= AG00 && keycode <= LAYER_CYCLE)) {
+        return native_keycode;
     }
     return keycode;
 }
@@ -119,25 +115,20 @@ uint8_t poc_keymap_base_layer(layer_state_t state) {
     return state & normal_layers ? POC_NORMAL_FIRST_LAYER : POC_CODEX_LAYER;
 }
 
-// Layers 1-3 use VIA data; layer 0 uses VIA only at the five custom positions.
-// QMK's own keymap_key_to_keycode() is weak, so this replaces it wholesale.
 uint16_t keymap_key_to_keycode(uint8_t layer, keypos_t key) {
     if (layer >= POC_VIA_LAYER_COUNT) {
         return KC_NO;
     }
     if (layer == POC_CODEX_LAYER) {
         if (key.row < MATRIX_ROWS && key.col < MATRIX_COLS) {
-            if (poc_codex_custom_position(key)) {
-                return poc_codex_custom_keycode(key);
-            }
-            return keycode_at_keymap_location_raw(layer, key.row, key.col);
+            return poc_codex_resolve_keycode(dynamic_keymap_get_keycode(layer, key.row, key.col), keycode_at_keymap_location_raw(layer, key.row, key.col));
         }
 #ifdef ENCODER_MAP_ENABLE
         if (key.row == KEYLOC_ENCODER_CW && key.col < NUM_ENCODERS) {
-            return keycode_at_encodermap_location_raw(layer, key.col, true);
+            return poc_codex_resolve_keycode(dynamic_keymap_get_encoder(layer, key.col, true), keycode_at_encodermap_location_raw(layer, key.col, true));
         }
         if (key.row == KEYLOC_ENCODER_CCW && key.col < NUM_ENCODERS) {
-            return keycode_at_encodermap_location_raw(layer, key.col, false);
+            return poc_codex_resolve_keycode(dynamic_keymap_get_encoder(layer, key.col, false), keycode_at_encodermap_location_raw(layer, key.col, false));
         }
 #endif
         return KC_NO;

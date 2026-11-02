@@ -95,14 +95,6 @@ void oled_write_ln(const char *text, bool invert) {
 void oled_write_raw_P(const char *text, uint16_t length) { (void)text; assert(length == 512); }
 void oled_write_raw(const char *text, uint16_t length) { (void)text; assert(length == 512); }
 
-uint16_t keycode_at_keymap_location_raw(uint8_t layer, uint8_t row, uint8_t col) {
-    assert(layer == POC_CODEX_LAYER && row < 4 && col < 5);
-    return 0x4100 + row * 5 + col;
-}
-uint16_t keycode_at_encodermap_location_raw(uint8_t layer, uint8_t index, bool clockwise) {
-    assert(layer == POC_CODEX_LAYER && index < 3);
-    return 0x4200 + index * 2 + clockwise;
-}
 uint16_t dynamic_keymap_get_keycode(uint8_t layer, uint8_t row, uint8_t col) {
     assert(layer < 4 && row < 4 && col < 5);
     if (use_saved_keymap) {
@@ -140,6 +132,15 @@ void dynamic_keymap_set_encoder(uint8_t layer, uint8_t index, bool clockwise, ui
 }
 
 #include "keymap_under_test.h"
+
+uint16_t keycode_at_keymap_location_raw(uint8_t layer, uint8_t row, uint8_t col) {
+    assert(layer == POC_CODEX_LAYER && row < 4 && col < 5);
+    return native_keymap_under_test[row][col];
+}
+uint16_t keycode_at_encodermap_location_raw(uint8_t layer, uint8_t index, bool clockwise) {
+    assert(layer == POC_CODEX_LAYER && index < 3);
+    return native_encoders_under_test[index][clockwise ? 1 : 0];
+}
 
 void layer_state_set(layer_state_t state) { layer_state = layer_state_set_user(state); }
 #define MAX_LAYER 32
@@ -296,7 +297,7 @@ static void test_encoders_and_layer_actions(void) {
     assert(get_highest_layer(layer_state) == POC_CODEX_LAYER);
     for (uint8_t layer = 0; layer < POC_VIA_LAYER_COUNT; ++layer) {
         assert(keymap_key_to_keycode(layer, (keypos_t){0, 0}) == 0x1100 + layer * 20);
-        assert(keymap_key_to_keycode(layer, (keypos_t){KEYLOC_ENCODER_CW, 2}) == (layer == POC_CODEX_LAYER ? 0x4205 : 0x1205 + layer * 6));
+        assert(keymap_key_to_keycode(layer, (keypos_t){KEYLOC_ENCODER_CW, 2}) == 0x1205 + layer * 6);
     }
     assert(keymap_key_to_keycode(4, (keypos_t){0, 0}) == KC_NO);
     layer_move(4);
@@ -386,7 +387,7 @@ static void test_four_layer_migration(void) {
     puts("PASS: legacy layer-4 actions migrate to layer 3 once; page 3 and unrelated keys/encoders remain intact");
 }
 
-static void test_placeholder_page(void) {
+static void test_codex_via_overrides(void) {
     reset_saved_layout();
     mode_codex = false;
     for (uint8_t row = 0; row < MATRIX_ROWS; ++row) {
@@ -394,8 +395,7 @@ static void test_placeholder_page(void) {
             uint8_t report[32] = {id_dynamic_keymap_set_keycode, POC_CODEX_LAYER, row, col, 0, KC_A};
             assert(!via_command_kb(report, sizeof(report)));
             dynamic_keymap_set_keycode(POC_CODEX_LAYER, row, col, KC_A);
-            uint16_t expected = poc_codex_custom_position((keypos_t){row, col}) ? KC_A : 0x4100 + row * 5 + col;
-            assert(keymap_key_to_keycode(POC_CODEX_LAYER, (keypos_t){row, col}) == expected);
+            assert(keymap_key_to_keycode(POC_CODEX_LAYER, (keypos_t){row, col}) == KC_A);
         }
     }
     for (uint8_t encoder = 0; encoder < NUM_ENCODERS; ++encoder) {
@@ -404,7 +404,7 @@ static void test_placeholder_page(void) {
             assert(!via_command_kb(report, sizeof(report)));
             dynamic_keymap_set_encoder(POC_CODEX_LAYER, encoder, direction != 0, KC_B);
             keypos_t location = {direction != 0 ? KEYLOC_ENCODER_CW : KEYLOC_ENCODER_CCW, encoder};
-            assert(keymap_key_to_keycode(POC_CODEX_LAYER, location) == 0x4200 + encoder * 2 + direction);
+            assert(keymap_key_to_keycode(POC_CODEX_LAYER, location) == KC_B);
         }
     }
     for (uint8_t layer = POC_NORMAL_FIRST_LAYER; layer < POC_VIA_LAYER_COUNT; ++layer) {
@@ -413,7 +413,44 @@ static void test_placeholder_page(void) {
     }
     use_saved_keymap = false;
     mode_codex = true;
-    puts("PASS: first VIA page executes all five custom keys directly while native AG/ACT, C click and rotations stay fixed");
+    puts("PASS: first VIA page overrides every key, encoder click and rotation without changing ordinary layer routing");
+}
+
+static void test_codex_native_fallback(void) {
+    reset_saved_layout();
+    const uint16_t defaults[] = {KC_NO, KC_TRNS, AG00, ACT12, JOY_UP, ENC_SW, LAYER_CYCLE};
+    for (size_t index = 0; index < sizeof(defaults) / sizeof(defaults[0]); ++index) {
+        for (uint8_t row = 0; row < MATRIX_ROWS; ++row) {
+            for (uint8_t column = 0; column < MATRIX_COLS; ++column) {
+                saved_keymap[POC_CODEX_LAYER][row][column] = defaults[index];
+                assert(keymap_key_to_keycode(POC_CODEX_LAYER, (keypos_t){row, column}) == keycode_at_keymap_location_raw(POC_CODEX_LAYER, row, column));
+            }
+        }
+        for (uint8_t encoder = 0; encoder < NUM_ENCODERS; ++encoder) {
+            for (uint8_t direction = 0; direction < NUM_DIRECTIONS; ++direction) {
+                saved_encoders[POC_CODEX_LAYER][encoder][direction] = defaults[index];
+                keypos_t key = {direction ? KEYLOC_ENCODER_CW : KEYLOC_ENCODER_CCW, encoder};
+                assert(keymap_key_to_keycode(POC_CODEX_LAYER, key) == keycode_at_encodermap_location_raw(POC_CODEX_LAYER, encoder, direction != 0));
+            }
+        }
+    }
+    for (uint8_t layer = POC_NORMAL_FIRST_LAYER; layer < POC_VIA_LAYER_COUNT; ++layer) {
+        saved_keymap[layer][0][1] = KC_NO;
+        saved_keymap[layer][1][0] = KC_TRNS;
+        saved_encoders[layer][0][0] = KC_NO;
+        saved_encoders[layer][0][1] = KC_TRNS;
+        assert(keymap_key_to_keycode(layer, (keypos_t){0, 1}) == KC_NO);
+        assert(keymap_key_to_keycode(layer, (keypos_t){1, 0}) == KC_TRNS);
+        assert(keymap_key_to_keycode(layer, (keypos_t){KEYLOC_ENCODER_CCW, 0}) == KC_NO);
+        assert(keymap_key_to_keycode(layer, (keypos_t){KEYLOC_ENCODER_CW, 0}) == KC_TRNS);
+    }
+    assert(keymap_writes == 0 && encoder_writes == 0 && user_data_writes == 0);
+    assert(keymap_key_to_keycode(POC_CODEX_LAYER, (keypos_t){4, 0}) == KC_NO);
+    assert(keymap_key_to_keycode(POC_CODEX_LAYER, (keypos_t){0, 5}) == KC_NO);
+    assert(keymap_key_to_keycode(POC_CODEX_LAYER, (keypos_t){KEYLOC_ENCODER_CW, NUM_ENCODERS}) == KC_NO);
+    assert(keymap_key_to_keycode(POC_CODEX_LAYER, (keypos_t){KEYLOC_ENCODER_CCW, NUM_ENCODERS}) == KC_NO);
+    use_saved_keymap = false;
+    puts("PASS: Codex empty/transparent/internal defaults restore each native key and both encoder directions without EEPROM writes; ordinary NO/TRNS semantics and invalid bounds remain unchanged");
 }
 
 static void test_custom_migration(void) {
@@ -450,11 +487,12 @@ static void test_custom_tap_and_hold(void) {
     reset_saved_layout();
     default_layer_set(1UL << POC_CODEX_LAYER);
     layer_move(POC_CODEX_LAYER);
-    const keypos_t positions[] = {{0,0}, {3,0}, {0,3}, {0,4}, {1,4}};
+    const keypos_t positions[] = {{0,0}, {0,1}, {0,2}, {0,3}, {0,4}, {1,0}, {1,1}, {1,2}, {1,3}, {1,4}, {2,0}, {2,1}, {2,2}, {2,3}, {2,4}, {3,0}, {3,1}, {3,2}, {3,3}};
     for (size_t index = 0; index < sizeof(positions) / sizeof(positions[0]); ++index) {
         keypos_t key = positions[index];
         saved_keymap[POC_CODEX_LAYER][key.row][key.col] = QK_MACRO_0;
         processed_events = processed_macros = 0;
+        clear_output();
         keyrecord_t record = {.event = {.key = key, .pressed = true}};
         process_record(&record);
         assert(processed_events == 1 && processed_macros == 1 && processed_macro_id == 0);
@@ -466,9 +504,10 @@ static void test_custom_tap_and_hold(void) {
         assert(processed_events == 2 && processed_macros == 1);
         assert(processed_keycodes[0] == QK_MACRO_0 && processed_keycodes[1] == QK_MACRO_0);
         assert(processed_pressed[0] && !processed_pressed[1]);
+        assert(replies == 0);
     }
     use_saved_keymap = false;
-    puts("PASS: all five custom keys run macros immediately on press with paired release, without delayed tap replay or forced hold actions");
+    puts("PASS: all nineteen keys/clicks execute VIA macros once with paired release and no duplicate native Codex events");
 }
 
 static void test_custom_key_safety(void) {
@@ -483,9 +522,10 @@ static void test_custom_key_safety(void) {
         saved_keymap[POC_CODEX_LAYER][key.row][key.col] = KC_LCTL;
         assert(keymap_key_to_keycode(POC_CODEX_LAYER, key) == KC_LCTL);
     }
-    assert(keymap_key_to_keycode(POC_CODEX_LAYER, (keypos_t){2,4}) == 0x410E);
+    saved_keymap[POC_CODEX_LAYER][2][4] = KC_NO;
+    assert(keymap_key_to_keycode(POC_CODEX_LAYER, (keypos_t){2,4}) == ENC_SW);
     use_saved_keymap = false;
-    puts("PASS: five direct custom keys accept held modifiers while transparent/internal reserved codes are inert; C click stays native");
+    puts("PASS: spare keys remain inert when empty/internal and accept held modifiers; clearing C click restores native encoder press");
 }
 
 static void test_bottom_left_is_direct(void) {
@@ -891,6 +931,62 @@ static void test_boot_identity_layers(void) {
     puts("PASS: real post-init boots Codex identity on L0 and starts VIA identity on ordinary L1 without overwriting already migrated settings");
 }
 
+static void test_native_position_overrides(void) {
+    reset_saved_layout();
+    default_layer_set(1UL << POC_CODEX_LAYER);
+    const keypos_t positions[] = {{0,1}, {1,0}, {2,0}, {2,4}, {3,3}};
+    for (size_t index = 0; index < sizeof(positions) / sizeof(positions[0]); ++index) {
+        keypos_t key = positions[index];
+        for (uint8_t target = POC_NORMAL_FIRST_LAYER; target < POC_VIA_LAYER_COUNT; ++target) {
+            saved_keymap[POC_CODEX_LAYER][key.row][key.col] = MO(target);
+            saved_keymap[target][0][0] = KC_C;
+            layer_move(POC_CODEX_LAYER);
+            processed_events = 0;
+            clear_output();
+            keyrecord_t hold = {.event = {.key = key, .pressed = true}};
+            keyrecord_t typed = {.event = {.key = {0,0}, .pressed = true}};
+            process_record(&hold);
+            assert(get_highest_layer(layer_state) == target);
+            process_record(&typed);
+            hold.event.pressed = false;
+            process_record(&hold);
+            assert(get_highest_layer(layer_state | default_layer_state) == POC_CODEX_LAYER);
+            typed.event.pressed = false;
+            process_record(&typed);
+            assert(processed_events == 4 && replies == 0);
+            assert(processed_keycodes[0] == MO(target) && processed_keycodes[2] == MO(target));
+            assert(processed_keycodes[1] == KC_C && processed_keycodes[3] == KC_C);
+        }
+    }
+    layer_move(POC_CODEX_LAYER);
+    saved_keymap[POC_CODEX_LAYER][0][1] = KC_NO;
+    clear_output();
+    keyrecord_t native = {.event = {.key = {0,1}, .pressed = true}};
+    process_record(&native);
+    native.event.pressed = false;
+    process_record(&native);
+    assert(occurrences("\"k\":\"AG00\"") == 2);
+    for (uint8_t encoder = 0; encoder < NUM_ENCODERS; ++encoder) {
+        for (uint8_t direction = 0; direction < NUM_DIRECTIONS; ++direction) {
+            keypos_t key = {direction ? KEYLOC_ENCODER_CW : KEYLOC_ENCODER_CCW, encoder};
+            saved_encoders[POC_CODEX_LAYER][encoder][direction] = QK_MACRO_0;
+            processed_events = processed_macros = 0;
+            clear_output();
+            keyrecord_t turn = {.event = {.key = key, .pressed = true}};
+            process_record(&turn);
+            turn.event.pressed = false;
+            process_record(&turn);
+            assert(processed_events == 2 && processed_macros == 1 && replies == 0);
+            saved_encoders[POC_CODEX_LAYER][encoder][direction] = KC_TRNS;
+            process_record_user(keymap_key_to_keycode(POC_CODEX_LAYER, key), &(keyrecord_t){.event = {.key = key, .pressed = true}});
+            process_record_user(keymap_key_to_keycode(POC_CODEX_LAYER, key), &(keyrecord_t){.event = {.key = key, .pressed = false}});
+            assert(replies > 0);
+        }
+    }
+    use_saved_keymap = false;
+    puts("PASS: native AG/ACT/C-click slots support real MO to every ordinary layer with cached releases; clearing restores AG events, and each encoder direction switches cleanly between VIA macros and native HID");
+}
+
 int main(void) {
     mode_codex = true;
     test_rgb_restore();
@@ -899,7 +995,8 @@ int main(void) {
     test_encoders_and_layer_actions();
     test_ambient_layer_key_priority();
     test_four_layer_migration();
-    test_placeholder_page();
+    test_codex_via_overrides();
+    test_codex_native_fallback();
     test_custom_migration();
     test_custom_tap_and_hold();
     test_custom_key_safety();
@@ -907,6 +1004,7 @@ int main(void) {
     test_codex_l0_migration();
     test_fresh_layout_and_legacy_chain();
     test_native_momentary_layers();
+    test_native_position_overrides();
     test_boot_identity_layers();
     test_via_bounds();
     test_control_queue_and_packets();

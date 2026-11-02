@@ -1,6 +1,5 @@
 #pragma once
 
-// VIA exposes four editable pages; five page-0 positions execute in Codex.
 #define POC_CODEX_LAYER 0
 #define POC_NORMAL_FIRST_LAYER 1
 #define POC_LEGACY_CODEX_LAYER 3

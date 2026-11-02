@@ -2,7 +2,9 @@
 
 ## 当前 QMK + VIA 固件（主实现）
 
-当前版本 `0.6.0-qmk`：Codex 在第一页 L0，普通层在 L1–L3；五处直接读取 VIA，取消固定长按退出。L0 配 MO(1) 按住临时普通 L1、松开返回；普通层 TO(0) 回 Codex。原配置及层动作一次迁移，先导出备份。本版以 [v0.6.0-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.6.0-qmk) 分发，已刷入同源 main 流水线 Artifact；版本应答为 0.6.0-qmk，当前 Codex L0；[完整说明](codex-via-keys.md)。**下方 0.4.9 下载与实机验收段为旧版本示例，不是当前源码的层序/退出方式。**
+**当前版本 0.7.0-qmk：** L0 全部按键、旋钮按下和旋转均由 VIA 优先覆盖；空键/透明键恢复对应 Codex 默认，不再限五处。普通 L1–L3、灯光及十秒 USB 身份协商不变；所有已有配置保留，之前存着但未执行的 L0 编辑也会生效，升级前导出并检查。本版未刷机，实机基线仍为 0.6.0；当前下载与命令见下方 0.7.0 小节，0.6.0 段为历史示例。详见 [执行规则](codex-via-keys.md)。
+
+历史版本 `0.6.0-qmk`：Codex 在第一页 L0，普通层在 L1–L3；五处直接读取 VIA，取消固定长按退出。L0 配 MO(1) 按住临时普通 L1、松开返回；普通层 TO(0) 回 Codex。原配置及层动作一次迁移，先导出备份。本版以 [v0.6.0-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.6.0-qmk) 分发，已刷入同源 main 流水线 Artifact；版本应答为 0.6.0-qmk，当前 Codex L0；[完整说明](codex-via-keys.md)。**下方 0.4.9 下载与实机验收段为旧版本示例，不是当前源码的层序/退出方式。**
 
 历史已发布/实机基线 `0.4.9-qmk`：OLED 独立息屏，无任务灯分配保留 Logo，入层完整展示约 1 秒；背光、10 秒 VIA 窗口、左下角一秒退出、四层和 EEPROM 不变。流水线版本已刷入并核验，用户确认返回 Codex 的 Logo 正常；一小时息屏及按键唤醒按用户选择不测，不能记为实机通过，见 `development.md`。十三槽仍需宿主配套。
 
@@ -18,7 +20,20 @@
 - macOS 或 Windows；刷写需要 `dfu-util` 或 QMK Toolbox。
 - ChatGPT/Codex 桌面版（macOS 14+ / Windows 10+）。
 
-## 0.6.0 流水线固件刷写
+## 0.7.0 流水线固件刷写
+
+从 [v0.7.0-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.0-qmk) 下载五份流水线附件并检查 BUILD-INFO.json、SHA256SUMS。升级前导出并检查 L0 按键/按压/旋转：原先保存但不执行的编辑现在会生效，清空 KC_NO/KC_TRNS 恢复原生；0.6→0.7 不清空配置、不新增迁移。
+
+断开 USB 拆开外壳，露出 PCB 内部 RESET 并做好绝缘；接回 USB，先执行等待命令，再短按内部 RESET 并松开：
+
+```bash
+dfu-util -w -a 2 -d 1EAF:0003 \
+  -D doio_kb16_rev2_codex_micro_v0.7.0-qmk.bin
+```
+
+仅允许 Maple alt 2 应用区 `0x08002000`；不要改 Bootloader、读保护或做全片擦除。下载期间不拔线；完成后核对重新枚举和 0.7.0-qmk 版本，不因复位阶段返回 74 就重复刷。异常恢复、断电拆机和来源/哈希检查继续遵守下方完整步骤，替换为本版附件。**本轮发布不自动刷机，新功能尚未实机验收。**
+
+## 历史：0.6.0 流水线固件刷写
 
 此流程适用于当前 L0 Codex / L1–L3 普通 VIA 的 `0.6.0-qmk`，不使用下方旧 Release 的二进制。正式附件从 [v0.6.0-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.6.0-qmk) 下载，由标签流水线生成；开发 Artifact 也必须对应明确的成功提交。不要使用首轮 00241c2 的旧屏幕编号产物。
 

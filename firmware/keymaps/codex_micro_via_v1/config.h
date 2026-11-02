@@ -22,7 +22,6 @@
 #define RAW_REPORT_COUNT 63
 #define RAW_EPSIZE 64
 
-// Four stored pages; Codex reads five VIA key positions and keeps native controls in flash.
 #define DYNAMIC_KEYMAP_LAYER_COUNT 4
 #define POC_EEPROM_RESERVED_LAYER_SLOTS 5
 #define DYNAMIC_KEYMAP_ENCODER_EEPROM_ADDR (DYNAMIC_KEYMAP_EEPROM_ADDR + POC_EEPROM_RESERVED_LAYER_SLOTS * MATRIX_ROWS * MATRIX_COLS * 2)

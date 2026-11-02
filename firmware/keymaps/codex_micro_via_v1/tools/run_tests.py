@@ -97,7 +97,7 @@ def check_codex_layout_artwork(positions):
                 assert float(circle.attrib["cy"]) == 90 + vertical * 64 + 30
                 index = int(group.attrib["data-index"])
                 assert (group.attrib["data-ccw"], group.attrib["data-cw"]) == turns[index]
-    print("PASS: both SVG layouts match all five direct VIA keys, native controls, LED indexes and VIA physical coordinates", flush=True)
+    print("PASS: both SVG default-fallback layouts match native controls, spare positions, LED indexes and VIA physical coordinates", flush=True)
 
 
 def check_power_config():
@@ -126,10 +126,22 @@ with tempfile.TemporaryDirectory(prefix="kb16-tests-") as scratch:
     source = (KEYMAP / "keymap.c").read_text()
     enum = re.search(r"enum poc_keycodes \{.*?\n\};", source, re.S).group()
     extracted = [enum, "#define POC_LAYER_COUNT POC_VIA_LAYER_COUNT"]
+    native_body = re.search(r"\[_CODEX\]\s*=\s*LAYOUT\((.*?)\),", source, re.S).group(1)
+    native_keys = [entry.strip() for entry in re.sub(r"/\*.*?\*/", "", native_body, flags=re.S).split(",") if entry.strip()]
+    assert len(native_keys) == 19
+    native_keys.append("KC_NO")
+    rows = ["{" + ", ".join(native_keys[offset:offset + 5]) + "}" for offset in range(0, 20, 5)]
+    extracted.append("static const uint16_t native_keymap_under_test[4][5] = {" + ", ".join(rows) + "};")
+    encoder_source = source[source.index("const uint16_t PROGMEM encoder_map"):]
+    native_body = re.search(r"\[_CODEX\]\s*=\s*\{(.*?)\},", encoder_source, re.S).group(1)
+    native_turns = re.findall(r"ENCODER_CCW_CW\((\w+),\s*(\w+)\)", native_body)
+    assert len(native_turns) == 3
+    rows = ["{" + ", ".join(turns) + "}" for turns in native_turns]
+    extracted.append("static const uint16_t native_encoders_under_test[3][2] = {" + ", ".join(rows) + "};")
     for stamp in ("POC_LAYER_STAMP", "POC_FOUR_LAYER_STAMP", "POC_CUSTOM_KEYS_STAMP", "POC_CODEX_L0_STAMP"):
         extracted.append(re.search(rf"#define {stamp} .*", source).group())
     for signature in (
-        "static bool poc_codex_custom_position(", "static uint16_t poc_codex_custom_keycode(",
+        "static bool poc_codex_custom_position(", "static uint16_t poc_codex_resolve_keycode(",
         "uint8_t poc_keymap_base_layer(", "uint16_t keymap_key_to_keycode(",
         "static void codex_send_action(", "bool process_record_user(", "void matrix_scan_user(",
         "static void poc_check_layout_stamp(",
