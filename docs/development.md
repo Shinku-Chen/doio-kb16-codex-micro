@@ -1,5 +1,16 @@
 # 开发与构建
 
+## 0.7.0 实机刷写与当前说明
+
+2026-11-02 按用户要求下载并刷入正式 [v0.7.0-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.0-qmk) 附件，来源为标签提交 `cdbcd5765145785f80813825cabfaa9f07fb569d`、[流水线 41444158985](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41444158985)。五份附件齐全，BUILD-INFO.json、BIN、HEX、VIA 定义的 SHA-256 均与 SHA256SUMS 一致；BIN 为 51,320 字节，SHA-256 `cbf82655e3e4da6d9db806f2713234859b51bf919fd3084cf14511ea7ea858bc`。
+
+- 刷前通过只读 VIA 查询备份四层键位、三个旋钮及宏，连续两遍读取一致。Windows Maple 设备缺少驱动，限定 `1EAF:0003` 安装 WinUSB 后继续；该阶段没有写入固件。
+- 核对唯一 Maple DFU 的 alt 2 `Upload to Flash 0x8002000`，只写应用区 `0x08002000`。应用主体 51,304 字节一次下载至 100%，工具返回 0；未修改 Bootloader、读保护或重新刷写。
+- 用户真正断电等候后重插，同一键盘重新以 Codex 身份连接；`sys.version` 与 `device.status` 均返回 `0.7.0-qmk`，`layer_index=1` 对应 Codex L0。版本核验不等同逐项键位、OLED 目视、灯光或一小时休眠验收；本次未做 Flash 读回。
+- 用户确认使用 `TT(1)`，按住切层存在默认约 200 ms 的点按/长按判定窗口，并决定保持现有设置。`TT(1)` 默认快速点按 5 次锁定或解除 L1；`MO(1)` 按下即可临时启用 L1。未调整固件判定参数或用户键位。
+
+按用户要求，根目录中英文 README 只说明当前版本功能与使用方式；版本演进记录保留在 CHANGELOG 和开发文档中。
+
 ## 0.7.0 开发：L0 全部 VIA 优先及空键回退
 
 2026-11-02 按用户要求扩展 L0 查键逻辑：16 个方键、三旋钮按下及六个旋转方向，非空普通 VIA 配置优先；KC_NO/KC_TRNS 恢复该位置静态 Codex 默认。保留内部 AG/ACT/JOY/ENC/旧切层码占位的安全约束，不允许借它们把原生事件搬到另一位置；本次不增加 EEPROM 标记、迁移或重置。原已存储但未执行的 L0 普通配置现在会生效，必须提醒用户备份检查。
