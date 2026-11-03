@@ -1,4 +1,4 @@
-# DOIO KB16 Codex Micro
+# DOIO KB16 Codex Micro 兼容固件
 
 **简体中文** | [English](README.en.md)
 
