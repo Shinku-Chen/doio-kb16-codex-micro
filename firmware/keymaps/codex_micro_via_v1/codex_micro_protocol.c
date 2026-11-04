@@ -59,15 +59,12 @@ static bool                sent_encoder_press;
 static uint8_t             joystick_held_mask;
 static uint8_t             joystick_press_order[CODEX_MICRO_JOYSTICK_DIRECTION_COUNT];
 static uint8_t             joystick_press_count;
-static uint8_t             act_pressed_mask;
 
 static const char   *const action_key_names[CODEX_MICRO_ACTION_COUNT] = {"ACT06", "ACT07", "ACT08", "ACT09", "ACT12", "ACT11", "ACT10"};
 static const char   *const joystick_angles[CODEX_MICRO_JOYSTICK_DIRECTION_COUNT] = {"0.75", "0.00", "0.25", "0.50"};
 /* 灯槽 0–5 对应原生 AG，扩展槽 6–12 对应 ACT06–ACT12 的物理灯；不改变输入上报。 */
 static const uint8_t task_led_index[CODEX_MICRO_HOST_SLOT_COUNT] = {1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15};
 
-/* ACT06-09 = R3C1-R3C4, ACT10/11/12 = R4C2-R4C4. */
-static const uint8_t act_led_index[CODEX_MICRO_ACTION_COUNT] = {8, 9, 10, 11, 15, 14, 13};
 static const uint8_t ambient_led_index[] = {12, 13, 14, 15};
 
 static void send_json(const char *json) {
@@ -561,8 +558,6 @@ void codex_micro_init(void) {
     sent_encoder_press = false;
     joystick_held_mask = 0;
     joystick_press_count = 0;
-    act_pressed_mask = 0;
-    // 默认不点亮底光：ACT 键和空位平时黑，只在按下时亮；AG 键按任务状态亮。
 }
 
 void codex_micro_task(void) {
@@ -602,13 +597,7 @@ void codex_micro_send_action_key(codex_micro_action_t action, bool pressed) {
         return;
     }
 
-    // 按下时点亮对应键，跟宿主是否连上无关。
     uint8_t mask = (uint8_t)(1U << action);
-    if (pressed) {
-        act_pressed_mask |= mask;
-    } else {
-        act_pressed_mask &= (uint8_t)~mask;
-    }
     if (pressed) {
         if (!host_seen) {
             show_no_link();
@@ -857,18 +846,6 @@ bool codex_micro_rgb_indicators(uint8_t led_min, uint8_t led_max) {
 
         uint32_t color = host_seen ? light_pixel(&thread_lights[slot], 0, 1, true) : 0;
         RGB_MATRIX_INDICATOR_SET_COLOR(led, (uint8_t)(color >> 16), (uint8_t)(color >> 8), (uint8_t)color);
-    }
-
-    // ACT 键平时不亮，只有按住期间才点白光。
-    for (uint8_t action = 0; action < CODEX_MICRO_ACTION_COUNT; ++action) {
-        uint8_t led = act_led_index[action];
-        if (led < led_min || led >= led_max || has_extended_task_light(led)) {
-            continue;
-        }
-        if ((act_pressed_mask & (uint8_t)(1U << action)) == 0) {
-            continue;
-        }
-        RGB_MATRIX_INDICATOR_SET_COLOR(led, 255, 255, 255);
     }
 
     if (host_seen && ambient_light.assigned) {

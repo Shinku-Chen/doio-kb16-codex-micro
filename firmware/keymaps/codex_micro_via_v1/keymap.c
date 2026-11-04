@@ -428,9 +428,20 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
         for (uint8_t led = led_min; led < led_max && led < RGB_MATRIX_LED_COUNT; ++led) {
             RGB_MATRIX_INDICATOR_SET_COLOR(led, 0, 0, 0);
         }
-        return true;
+    } else {
+        codex_micro_rgb_indicators(led_min, led_max);
     }
-    codex_micro_rgb_indicators(led_min, led_max);
+    if (get_highest_layer(layer_state | default_layer_state) == POC_CODEX_LAYER && !rgb_matrix_get_suspend_state()) {
+        for (uint8_t row = 0; row < MATRIX_ROWS; ++row) {
+            for (uint8_t column = 0; column < MATRIX_COLS; ++column) {
+                uint8_t led = g_led_config.matrix_co[row][column];
+                if (led < led_min || led >= led_max || led >= RGB_MATRIX_LED_COUNT || !matrix_is_on(row, column)) {
+                    continue;
+                }
+                RGB_MATRIX_INDICATOR_SET_COLOR(led, 255, 255, 255);
+            }
+        }
+    }
     return true;
 }
 #endif

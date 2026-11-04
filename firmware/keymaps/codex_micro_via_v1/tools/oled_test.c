@@ -459,6 +459,33 @@ static void test_display_power(void) {
     puts("PASS: OLED uses one-hour fallback, heartbeat wake and USB suspend/resume without needing a changed display frame");
 }
 
+static void test_codex_display_without_idle_timeout(void) {
+    reset_screen(POC_CODEX_LAYER);
+    render();
+    assert(display_active);
+    fake_timer = input_idle = POC_IDLE_SLEEP_MS * 2;
+    render();
+    assert(display_active && !poc_power_should_oled_sleep());
+    feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"c\":3166206,\"b\":1,\"e\":1}]}");
+    fake_timer += POC_IDLE_SLEEP_MS * 2;
+    input_idle += POC_IDLE_SLEEP_MS * 2;
+    render();
+    assert(display_active && !poc_power_should_sleep());
+    layer_state = 1UL << POC_NORMAL_FIRST_LAYER;
+    render();
+    assert(!display_active);
+    layer_state = 1UL << POC_CODEX_LAYER;
+    render();
+    assert(display_active);
+    rgb_suspended = true;
+    render();
+    assert(!display_active);
+    rgb_suspended = false;
+    render();
+    assert(display_active);
+    puts("PASS: Codex logo/tasks never idle-sleep, VIA still times out, and Codex/USB resume wakes the display without new input or host packets");
+}
+
 static void test_codex_host_display_power(void) {
     reset_screen(POC_CODEX_LAYER);
     render();
@@ -649,6 +676,7 @@ int main(void) {
     test_edges_switches_and_wrap();
     test_usb_enqueue_boundary();
     test_display_power();
+    test_codex_display_without_idle_timeout();
     test_extended_tasks_keep_display_bounded();
     test_codex_host_display_power();
     test_empty_codex_logo();

@@ -49,7 +49,7 @@ VIA5  ACT10 ACT11 ACT12   (VIA5 直接执行，可持续按住)
 | `poc_mode.c` | 10 秒窗口、BKP 标志、模式复位 |
 | `poc_usb.c` | 描述符选择与 raw HID 长度（core patch 的强符号） |
 | `poc_via.c` | `via_command_kb()` 路由：VIA 模式放过，Codex 模式吞掉 |
-| `poc_power.c/.h` | 共用一小时兜底与 USB 挂起、心跳/重复通信续时；宿主关灯只门控 RGB，不关闭 OLED |
+| `poc_power.c/.h` | 普通 VIA L1–L3 一小时空闲关闭 RGB/OLED，输入及有效通信续时；Codex L0 无空闲超时，宿主关灯只门控 RGB 背景；全部层遵循 USB 挂起 |
 | `oled_icons.c` / `oled_splash.h` | 留边的 Logo、任务状态、居中数字和临时按键页，包含默认层 |
 | `oled_input.c` | 解码最终 6KRO/NKRO、消费/系统和鼠标报告，不写屏、不保存输入日志 |
 

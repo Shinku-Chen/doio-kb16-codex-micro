@@ -10,6 +10,8 @@ Turn a **DOIO KB16-01 Rev2** into a Codex Micro-compatible controller while keep
 
 > **Current version `0.7.0-qmk`: VIA overrides every L0 key, encoder click and rotation direction; `KC_NO` / `KC_TRNS` restores the native function at that position.** Four layers combine Codex controls with three ordinary keyboard layers. See the [hybrid-layer guide](docs/codex-via-keys.md).
 
+> **Unreleased source changes**: held white has the highest software priority on all 16 Codex square keys; release restores the latest task/ambient state. Codex RGB/OLED no longer have a one-hour idle timeout; only ordinary VIA layers retain it. The lighting descriptions below include these changes. Existing `v0.7.0-qmk` assets do not; these changes have not been flashed.
+
 Configure layer actions in VIA: `MO(1)` holds ordinary L1 and returns on release, `TT(1)` combines holding with rapid-tap locking, and `TO(0)` returns to Codex. See the switching guide below.
 
 - **[v0.7.0-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.0-qmk)** includes `.bin`, `.hex`, the VIA definition, `BUILD-INFO.json` and `SHA256SUMS`.
@@ -106,12 +108,12 @@ Right side: A upper-left knob  = joystick X
 
 | KB16 position | Codex event / purpose | LED index (zero-based) |
 |---|---|---|
-| R1C1 | VIA1, direct custom key supporting holds | 0, no local white, always off |
-| R1C4 | VIA2, direct custom key supporting holds | 3, no local white, always off |
+| R1C1 | VIA1, direct custom key supporting holds | 0, white while held, off on release |
+| R1C4 | VIA2, direct custom key supporting holds | 3, white while held, off on release |
 | R1C2 / R1C3 | AG00 / AG01 | 1 / 2 |
 | R2C1 / R2C2 / R2C3 / R2C4 | AG02 / AG03 / AG04 / AG05 | 4 / 5 / 6 / 7 |
 | R3C1 / R3C2 / R3C3 / R3C4 | ACT06 / ACT07 / ACT08 / ACT09 | 8 / 9 / 10 / 11 |
-| R4C1 | VIA5, direct custom key supporting holds | 12, ambient only, no local white |
+| R4C1 | VIA5, direct custom key supporting holds | 12, white while held, ambient or off on release |
 | R4C2 / R4C3 / R4C4 | ACT10 / ACT11 / ACT12 | 13 / 14 / 15 |
 
 | Knob | Counterclockwise | Clockwise | Click |
@@ -191,20 +193,19 @@ White/gray breathing does not receive the 5% idle multiplier. Speed 0 freezes th
 | Ambient `breath` / `shallowBreath` | All four bottom-row LEDs | Original RGB | 0–100% / 50–100% × B; no snake-specific exceptions |
 | Ambient `rainbow` / `gradient` | All four bottom-row LEDs | Animation colors | B, host speed |
 | Ambient cleared / off | Bottom row | None | Off unless another task/press indication takes priority |
-| Ordinary ACT without ambient/extended task | Pressed ACT | Local pure white | Normally off; 100% white while held |
-| Top custom square keys | R1C1 / R1C4 | No added local white | Remain dark while held |
-| Other custom square keys | R1C4 / R4C1 | No added local white | R1C4 stays dark; R4C1 follows ambient only |
+| Any held square key, including AG, ACT, empty and VIA-overridden keys | Corresponding physical LED | Local pure white | 100% white over tasks, ambient and host all-off; release restores the latest state |
+| Knob click | No independent key LED | None | Does not borrow another key's LED |
 
 Ambient covers R4C1–R4C4, not the six AG keys or row 3. It may light during task execution: **ambient activity does not necessarily mean recording**. Blue/teal exceptions classify color plus snake; they are not explicit host recording/running flags.
 
 ### Priority, extended slots and sleep
 
-- USB suspend and one-hour idle sleep turn off RGB/OLED. Host all-off suppresses RGB and local white feedback, while OLED follows its own sleep policy. Input and configured layer actions work regardless of the light state.
-- When display is allowed: assigned ACT task light > fourth-row ambient > ordinary ACT press white. An extended task at B=0 still owns its LED; `off` releases it.
+- In Codex L0, all 16 physical square keys show 100% pure white while held, regardless of AG/ACT role, VIA keycode or host connection. Multiple held keys light independently without changing host state.
+- Software priority: **physical held white > global background-off > task lights > fourth-row ambient > dark**. USB suspend still turns every LED off. Release restores the latest host state. An assigned task at B=0 reserves its background LED until `off`, but cannot suppress held white.
 - Firmware accepts task light slots **0–12**: 0–5 map to AG00–AG05, 6–12 to ACT06–ACT12 LEDs. **Input remains ACT, not AG06–AG12.** Thirteen-task end-to-end lighting requires a host that sends all thirteen light slots; a six-slot host uses only the six AG task lights.
 - Ordinary VIA layers use their QMK RGB settings, without Codex overlays. **One hour without input or valid host traffic switches RGB and OLED off together.**
-- In Codex, RGB follows the aggregate task/ambient state: all zones off, zero brightness or black non-color-changing effects turn RGB off; a breathing trough does not. **OLED sleeps only on USB suspend or one hour without both input and valid host traffic**, not on all-off or brightness zero. The protocol has no separate OLED-off command.
-- **Valid heartbeats and repeated packets renew the timer**. Input/valid traffic wakes an idle OLED; RGB explicitly disabled by the host requires a new light-on state. Lighting policy follows the active layer, not USB identity.
+- **Codex L0 has no one-hour idle timeout**: RGB retains the last host state even without input, heartbeats or lighting updates. All zones off, zero brightness or black non-color-changing effects turn backgrounds off; a breathing trough does not. OLED keeps the logo/task page and **sleeps only on USB suspend**, not on all-off or brightness zero. The protocol has no separate OLED-off command.
+- On ordinary VIA layers, **valid heartbeats and repeated packets renew the timer**; input/valid traffic wakes idle RGB/OLED. Codex backgrounds explicitly disabled by the host require a new light-on state, but held white remains available. Lighting policy follows the active layer, not USB identity.
 
 See the detailed [light tables](docs/lighting.md) and [compatibility assessment](docs/lighting-compatibility.md) for thresholds, parameters, priority and validation limits.
 
@@ -217,7 +218,7 @@ See the detailed [light tables](docs/lighting.md) and [compatibility assessment]
 | Encoder | Original encoder | Large lower knob C |
 | MIC | ACT10 + ACT11 halves | Middle bottom-row keys, combined/split by the host |
 | Ambient zone | Separate original light area | Four bottom-row key LEDs; chase becomes breath, recording-like teal becomes solid |
-| Key lights | Original physical arrangement | Six AG + seven extended ACT light slots; idle solid at 5%; ordinary ACT off except while pressed |
+| Key lights | Original physical arrangement | Six AG + seven extended ACT light slots; idle solid at 5%; held white has priority on all 16 square keys |
 | Screen | Does not use the KB16 OLED | Added safe-margin logo, six light-derived estimates, ordinary layer numbers and actual-output labels |
 | Ordinary remapping | Original product configuration system | Three VIA layers; L0 uses VIA overrides with native fallback; 10-second VIA handshake |
 | Work Louder Input | Original hardware configuration tool | **No Input remapping, `fs.*`, Mapper or Channel 3** |

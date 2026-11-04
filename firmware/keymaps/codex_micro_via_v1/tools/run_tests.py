@@ -111,14 +111,14 @@ def check_power_config():
 #error USB suspend must turn off keyboard lighting as well as the OLED
 #endif
 _Static_assert(OLED_TIMEOUT == 0 && RGB_MATRIX_TIMEOUT == 0, "native idle timers must not bypass shared host-aware power policy");
-_Static_assert(POC_IDLE_SLEEP_MS == 3600000UL, "shared idle fallback must be one hour");
+_Static_assert(POC_IDLE_SLEEP_MS == 3600000UL, "ordinary VIA idle fallback must be one hour");
 _Static_assert(POC_VIA_WINDOW_MS == 10000, "VIA startup window must be ten seconds");
 _Static_assert(POC_CODEX_LAYER == 0 && POC_NORMAL_FIRST_LAYER == 1 && POC_VIA_LAYER_COUNT == 4, "Codex must be the first of four VIA pages");
 #ifdef POC_LAYER_KEY_HOLD_MS
 #error No fixed long-hold exit is allowed
 #endif
 """, text=True, check=True)
-    print("PASS: shared one-hour policy owns OLED/RGB timeouts, without native timers bypassing heartbeat renewal; USB suspend remains enabled", flush=True)
+    print("PASS: layer-aware power policy owns OLED/RGB timeouts, with VIA-only one-hour idle, heartbeat renewal and USB suspend", flush=True)
 
 
 with tempfile.TemporaryDirectory(prefix="kb16-tests-") as scratch:

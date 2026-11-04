@@ -31,7 +31,7 @@ static void reset_power(uint8_t layer) {
 }
 
 static void test_idle_and_input(void) {
-    for (uint8_t layer = 0; layer < POC_VIA_LAYER_COUNT; ++layer) {
+    for (uint8_t layer = POC_NORMAL_FIRST_LAYER; layer < POC_VIA_LAYER_COUNT; ++layer) {
         reset_power(layer);
         assert(!poc_power_should_sleep());
         assert(!poc_power_should_oled_sleep());
@@ -46,11 +46,32 @@ static void test_idle_and_input(void) {
         assert(!poc_power_should_sleep());
         assert(!poc_power_should_oled_sleep());
     }
-    puts("PASS: all four layers share the exact one-hour idle boundary and input wakeup");
+    puts("PASS: the three ordinary VIA layers retain the exact one-hour idle boundary and input wakeup");
+}
+
+static void test_codex_without_idle_timeout(void) {
+    reset_power(POC_CODEX_LAYER);
+    static const uint32_t idle_hours[] = {1, 2, 24, 168};
+    for (size_t index = 0; index < sizeof(idle_hours) / sizeof(idle_hours[0]); ++index) {
+        fake_timer = input_idle = idle_hours[index] * POC_IDLE_SLEEP_MS;
+        assert(!poc_power_should_sleep());
+        assert(!poc_power_should_oled_sleep());
+    }
+    poc_power_note_lighting(true);
+    fake_timer = input_idle = POC_IDLE_SLEEP_MS * 200;
+    assert(!poc_power_should_sleep());
+    assert(!poc_power_should_oled_sleep());
+    layer_state = 1UL << POC_NORMAL_FIRST_LAYER;
+    assert(poc_power_should_sleep());
+    assert(poc_power_should_oled_sleep());
+    layer_state = 1UL << POC_CODEX_LAYER;
+    assert(!poc_power_should_sleep());
+    assert(!poc_power_should_oled_sleep());
+    puts("PASS: Codex has no RGB/OLED idle timeout before or after host lighting; layer changes immediately select the VIA-only idle policy");
 }
 
 static void test_heartbeat_renewal(void) {
-    for (uint8_t layer = 0; layer < POC_VIA_LAYER_COUNT; ++layer) {
+    for (uint8_t layer = POC_NORMAL_FIRST_LAYER; layer < POC_VIA_LAYER_COUNT; ++layer) {
         reset_power(layer);
         for (uint8_t hour = 1; hour <= 3; ++hour) {
             fake_timer = input_idle = hour * POC_IDLE_SLEEP_MS - 1;
@@ -70,7 +91,7 @@ static void test_heartbeat_renewal(void) {
         assert(!poc_power_should_sleep());
         assert(!poc_power_should_oled_sleep());
     }
-    puts("PASS: every heartbeat or repeated packet renews the one-hour timer on VIA and Codex; silence expires it and a later packet wakes it");
+    puts("PASS: every heartbeat or repeated packet renews the VIA one-hour timer; silence expires it and a later packet wakes it");
 }
 
 static void test_host_off_priority(void) {
@@ -93,7 +114,7 @@ static void test_host_off_priority(void) {
 }
 
 static void test_suspend_and_wrap(void) {
-    reset_power(POC_CODEX_LAYER);
+    reset_power(POC_NORMAL_FIRST_LAYER);
     fake_timer = UINT32_MAX - 1000;
     poc_power_note_host_activity();
     fake_timer += POC_IDLE_SLEEP_MS - 1;
@@ -106,16 +127,19 @@ static void test_suspend_and_wrap(void) {
     poc_power_note_host_activity();
     assert(!poc_power_should_sleep());
     assert(!poc_power_should_oled_sleep());
-    suspended = true;
-    assert(poc_power_should_sleep());
-    assert(poc_power_should_oled_sleep());
-    poc_power_note_host_activity();
-    assert(poc_power_should_sleep());
-    assert(poc_power_should_oled_sleep());
-    suspended = false;
-    assert(!poc_power_should_sleep());
-    assert(!poc_power_should_oled_sleep());
-    puts("PASS: USB suspend overrides heartbeat wake, resume preserves policy, and one-hour arithmetic survives timer wrap");
+    for (uint8_t layer = 0; layer < POC_VIA_LAYER_COUNT; ++layer) {
+        layer_state = 1UL << layer;
+        suspended = true;
+        assert(poc_power_should_sleep());
+        assert(poc_power_should_oled_sleep());
+        poc_power_note_host_activity();
+        assert(poc_power_should_sleep());
+        assert(poc_power_should_oled_sleep());
+        suspended = false;
+        assert(!poc_power_should_sleep());
+        assert(!poc_power_should_oled_sleep());
+    }
+    puts("PASS: USB suspend applies to every layer and overrides heartbeats; VIA idle arithmetic survives timer wrap");
 }
 
 static void test_oled_power_independence(void) {
@@ -126,23 +150,24 @@ static void test_oled_power_independence(void) {
     assert(!poc_power_should_oled_sleep());
     fake_timer = input_idle = POC_IDLE_SLEEP_MS;
     assert(poc_power_should_sleep());
-    assert(poc_power_should_oled_sleep());
+    assert(!poc_power_should_oled_sleep());
     poc_power_note_host_activity();
     assert(poc_power_should_sleep());
     assert(!poc_power_should_oled_sleep());
     fake_timer += POC_IDLE_SLEEP_MS;
     input_idle = POC_IDLE_SLEEP_MS * 2;
-    assert(poc_power_should_oled_sleep());
+    assert(!poc_power_should_oled_sleep());
     input_idle = 0;
     assert(poc_power_should_sleep());
     assert(!poc_power_should_oled_sleep());
     suspended = true;
     assert(poc_power_should_oled_sleep());
-    puts("PASS: host all-off keeps RGB dark without hiding OLED; one-hour idle, heartbeats, input and USB suspend retain OLED power control");
+    puts("PASS: Codex host all-off keeps only RGB backgrounds dark; OLED never times out on silence, but still sleeps on USB suspend");
 }
 
 int main(void) {
     test_idle_and_input();
+    test_codex_without_idle_timeout();
     test_heartbeat_renewal();
     test_host_off_priority();
     test_suspend_and_wrap();

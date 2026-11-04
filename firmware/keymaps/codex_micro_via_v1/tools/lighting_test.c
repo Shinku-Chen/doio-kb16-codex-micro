@@ -311,7 +311,7 @@ static void test_ambient_mapping(void) {
     assert_ambient_row(0x17462C);
     feed_json("{\"method\":\"v.oai.rgbcfg\",\"params\":{\"ambient\":{\"e\":0}}}");
     render();
-    assert(led_color(13) == 0xFFFFFF && led_color(14) == 0xFFFFFF);
+    assert(led_color(13) == 0 && led_color(14) == 0);
     assert(led_color(12) == 0 && led_color(15) == 0);
     codex_micro_send_action_key(CODEX_MICRO_ACTION_MIC, false);
     codex_micro_send_action_key(CODEX_MICRO_ACTION_11, false);
@@ -381,12 +381,12 @@ static void test_recording_solid_override(void) {
     puts("PASS: ambient recording stays solid and respects brightness/off while same-color AG snake breathes");
 }
 
-static void test_act_feedback_and_layers(void) {
+static void test_protocol_lighting_and_layers(void) {
     reset_lighting();
     feed_json("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"e\":0},{\"id\":1,\"e\":0},{\"id\":2,\"e\":0},{\"id\":3,\"e\":0},{\"id\":4,\"e\":0},{\"id\":5,\"e\":0}]}");
     codex_micro_send_action_key(CODEX_MICRO_ACTION_06, true);
     render();
-    assert(led_color(8) == 0xFFFFFF);
+    assert(led_color(8) == 0);
     codex_micro_send_action_key(CODEX_MICRO_ACTION_06, false);
     render();
     assert(led_color(8) == 0);
@@ -396,7 +396,7 @@ static void test_act_feedback_and_layers(void) {
     for (uint8_t index = 0; index < RGB_MATRIX_LED_COUNT; ++index) {
         assert(led_color(index) == 0x111111);
     }
-    puts("PASS: ACT press feedback survives empty tasks; VIA layers bypass Codex lighting");
+    puts("PASS: protocol events do not synthesize physical press lighting; VIA layers bypass Codex lighting");
 }
 
 static void test_ambient_full_row_isolation(void) {
@@ -418,7 +418,7 @@ static void test_ambient_full_row_isolation(void) {
         for (uint8_t slot = 0; slot < 6; ++slot) {
             assert(led_color(agents[slot]) == palette[slot]);
         }
-        assert(led_color(8) == 0xFFFFFF);
+        assert(led_color(8) == 0);
         assert(led_color(0) == 0 && led_color(3) == 0 && led_color(9) == 0 && led_color(10) == 0 && led_color(11) == 0);
     }
     feed_json("{\"method\":\"v.oai.rgbcfg\",\"params\":{\"ambient\":{\"b\":0.5}}}");
@@ -435,11 +435,11 @@ static void test_ambient_full_row_isolation(void) {
     }
     feed_json("{\"method\":\"v.oai.rgbcfg\",\"params\":{\"ambient\":{\"e\":0}}}");
     render();
-    assert(led_color(12) == 0 && led_color(13) == 0 && led_color(14) == 0 && led_color(15) == 0xFFFFFF);
+    assert_ambient_row(0);
     codex_micro_send_action_key(CODEX_MICRO_ACTION_12, false);
     render();
     assert_ambient_row(0);
-    puts("PASS: all four ambient LEDs breathe together, preserve AG/ACT lights and restore ACT12 press feedback on clear");
+    puts("PASS: ambient LEDs breathe together, preserve task colors, respect render ranges and clear without synthesizing press feedback");
 }
 
 static void test_ambient_breath_speed_and_brightness(void) {
@@ -756,14 +756,14 @@ static void test_extended_task_priority(void) {
     assert(led_color(8) == 0 && led_color(13) == 0);
     feed_json("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":6,\"e\":0},{\"id\":10,\"e\":0}]}");
     render();
-    assert(led_color(8) == 0xFFFFFF && led_color(13) == 0x208050);
+    assert(led_color(8) == 0 && led_color(13) == 0x208050);
     set_ambient_light(0x208050, "1", "0", "0");
     render();
-    assert(led_color(13) == 0xFFFFFF && led_color(14) == 0xFF0033);
+    assert(led_color(13) == 0 && led_color(14) == 0xFF0033);
     codex_micro_send_action_key(CODEX_MICRO_ACTION_06, false);
     render();
     assert(led_color(8) == 0);
-    puts("PASS: assigned extended tasks, including brightness zero, override ACT white and ambient; off restores the previous feedback priority");
+    puts("PASS: assigned extended tasks, including brightness zero, override ambient; off releases their background ownership");
 }
 
 static void test_extended_fragmented_frame(void) {
@@ -832,6 +832,7 @@ static void test_render_range_and_clock_wrap(void) {
 
 static void test_host_power_packets(void) {
     reset_lighting();
+    layer_state = 1UL << POC_NORMAL_FIRST_LAYER;
     fake_timer = input_idle = POC_IDLE_SLEEP_MS;
     assert(poc_power_should_sleep());
     feed_json("{\"method\":\"device.status\",\"id\":710030}");
@@ -854,9 +855,15 @@ static void test_host_power_packets(void) {
     assert(poc_power_should_sleep());
     set_task_light(0, 0x304FFE, "1", "1", "0");
     assert(!poc_power_should_sleep());
+    layer_state = 1UL << POC_CODEX_LAYER;
     render();
     assert(led_color(1) == 0x304FFE);
-    puts("PASS: real repeated status/lighting RPCs renew and wake the shared timer, while methodless malformed traffic does not");
+    fake_timer += POC_IDLE_SLEEP_MS * 2;
+    input_idle += POC_IDLE_SLEEP_MS * 2;
+    assert(!poc_power_should_sleep());
+    render();
+    assert(led_color(1) == 0x304FFE);
+    puts("PASS: valid repeated RPCs renew the VIA idle timer, malformed traffic does not, and Codex preserves host lighting after prolonged silence");
 }
 
 static void test_host_power_light_states(void) {
@@ -893,7 +900,7 @@ int main(void) {
     test_ambient_mapping();
     test_preview_and_partial_updates();
     test_recording_solid_override();
-    test_act_feedback_and_layers();
+    test_protocol_lighting_and_layers();
     test_ambient_full_row_isolation();
     test_ambient_breath_speed_and_brightness();
     test_running_ambient_brightness_limit();

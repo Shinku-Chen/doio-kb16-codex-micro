@@ -29,6 +29,14 @@ static unsigned replies;
 static bool rgb_enabled;
 static uint8_t rgb_mode;
 static uint32_t indicator_colors[RGB_MATRIX_LED_COUNT];
+static bool physical_keys[MATRIX_ROWS][MATRIX_COLS];
+static bool suspended;
+led_config_t g_led_config = {.matrix_co = {
+    {0, 1, 2, 3, UINT8_MAX},
+    {4, 5, 6, 7, UINT8_MAX},
+    {8, 9, 10, 11, UINT8_MAX},
+    {12, 13, 14, 15, UINT8_MAX},
+}};
 static char screen[4][22];
 static uint8_t cursor_row;
 static uint8_t cursor_col;
@@ -78,7 +86,11 @@ void test_set_color(uint8_t index, uint8_t red, uint8_t green, uint8_t blue) {
 void oled_clear(void) { memset(screen, 0, sizeof(screen)); ++oled_clears; }
 bool oled_on(void) { return true; }
 bool oled_off(void) { return false; }
-bool rgb_matrix_get_suspend_state(void) { return false; }
+bool rgb_matrix_get_suspend_state(void) { return suspended; }
+bool matrix_is_on(uint8_t row, uint8_t column) {
+    assert(row < MATRIX_ROWS && column < MATRIX_COLS);
+    return physical_keys[row][column];
+}
 uint32_t last_input_activity_elapsed(void) { return input_idle; }
 void oled_set_cursor(uint8_t col, uint8_t row) { cursor_col = col; cursor_row = row; }
 void oled_write(const char *text, bool invert) {
@@ -312,14 +324,96 @@ static void test_ambient_layer_key_priority(void) {
     fake_timer = 1000;
     feed("{\"method\":\"v.oai.rgbcfg\",\"params\":{\"ambient\":{\"c\":3166206,\"b\":1,\"e\":1}}}", true);
     keyrecord_t record = {.event = {.key = {0, 0}, .pressed = true}};
+    physical_keys[0][0] = true;
     assert(process_record_user(KC_LCTL, &record));
     fake_timer += 60000;
     matrix_scan_user();
     rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
-    assert(indicator_colors[0] == 0 && indicator_colors[3] == 0);
+    assert(indicator_colors[0] == 0xFFFFFF && indicator_colors[3] == 0);
     for (uint8_t led = 12; led < 16; ++led) assert(indicator_colors[led] == 0x304FFE);
     assert(get_highest_layer(layer_state) == POC_CODEX_LAYER);
-    puts("PASS: spare keys have no dedicated exit-white LED or forced exit and do not change fourth-row ambient");
+    physical_keys[0][0] = false;
+    rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
+    assert(indicator_colors[0] == 0);
+    puts("PASS: spare VIA keys show physical press white without forced exit or changes to fourth-row ambient");
+}
+
+static void test_all_physical_key_feedback(void) {
+    codex_micro_init();
+    input_idle = 0;
+    layer_state = default_layer_state = 1UL << POC_CODEX_LAYER;
+    memset(physical_keys, 0, sizeof(physical_keys));
+    for (uint8_t row = 0; row < MATRIX_ROWS; ++row) {
+        for (uint8_t column = 0; column < MATRIX_COLS; ++column) {
+            physical_keys[row][column] = true;
+            rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
+            uint8_t pressed_led = g_led_config.matrix_co[row][column];
+            for (uint8_t led = 0; led < RGB_MATRIX_LED_COUNT; ++led) {
+                assert(indicator_colors[led] == (led == pressed_led ? 0xFFFFFF : 0));
+            }
+            physical_keys[row][column] = false;
+            rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
+            for (uint8_t led = 0; led < RGB_MATRIX_LED_COUNT; ++led) assert(indicator_colors[led] == 0);
+        }
+    }
+    puts("PASS: all sixteen physical square keys show held white even without host/events, while unlit knob clicks do not borrow LEDs");
+}
+
+static void test_physical_feedback_priority(void) {
+    codex_micro_init();
+    input_idle = 0;
+    layer_state = default_layer_state = 1UL << POC_CODEX_LAYER;
+    feed("{\"method\":\"v.oai.rgbcfg\",\"params\":{\"ambient\":{\"c\":2129999,\"b\":1,\"e\":1}}}", true);
+    for (uint8_t slot = 0; slot < CODEX_MICRO_HOST_SLOT_COUNT; ++slot) {
+        char json[128];
+        snprintf(json, sizeof(json), "{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":%u,\"c\":3166206,\"b\":1,\"e\":1}]}", slot);
+        feed(json, true);
+    }
+    memset(physical_keys, 1, sizeof(physical_keys));
+    rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
+    for (uint8_t led = 0; led < RGB_MATRIX_LED_COUNT; ++led) assert(indicator_colors[led] == 0xFFFFFF);
+    feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"c\":16711680},{\"id\":10,\"b\":0},{\"id\":11,\"e\":0}]}", true);
+    rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
+    for (uint8_t led = 0; led < RGB_MATRIX_LED_COUNT; ++led) assert(indicator_colors[led] == 0xFFFFFF);
+    memset(physical_keys, 0, sizeof(physical_keys));
+    rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
+    assert(indicator_colors[1] == 0xFF0000 && indicator_colors[13] == 0 && indicator_colors[14] == 2129999);
+    assert(indicator_colors[0] == 0 && indicator_colors[3] == 0 && indicator_colors[12] == 2129999);
+    assert(strcmp(codex_micro_task_status(0), "ERR") == 0);
+    puts("PASS: multi-key white overrides native/extended tasks and ambient, including zero brightness, and release reveals the latest unchanged host state");
+}
+
+static void test_physical_feedback_gates_and_ranges(void) {
+    codex_micro_init();
+    layer_state = default_layer_state = 1UL << POC_CODEX_LAYER;
+    memset(physical_keys, 0, sizeof(physical_keys));
+    feed("{\"method\":\"v.oai.rgbcfg\",\"params\":{\"ambient\":{\"e\":0}}}", true);
+    fake_timer += POC_IDLE_SLEEP_MS;
+    input_idle = POC_IDLE_SLEEP_MS;
+    assert(poc_power_should_sleep());
+    physical_keys[3][0] = true;
+    rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
+    for (uint8_t led = 0; led < RGB_MATRIX_LED_COUNT; ++led) assert(indicator_colors[led] == (led == 12 ? 0xFFFFFF : 0));
+    suspended = true;
+    rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
+    for (uint8_t led = 0; led < RGB_MATRIX_LED_COUNT; ++led) assert(indicator_colors[led] == 0);
+    suspended = false;
+    g_led_config.matrix_co[3][0] = 5;
+    for (uint8_t led = 0; led < RGB_MATRIX_LED_COUNT; ++led) indicator_colors[led] = 0x112233;
+    rgb_matrix_indicators_advanced_user(5, 6);
+    for (uint8_t led = 0; led < RGB_MATRIX_LED_COUNT; ++led) assert(indicator_colors[led] == (led == 5 ? 0xFFFFFF : 0x112233));
+    g_led_config.matrix_co[3][0] = 12;
+    rgb_matrix_indicators_advanced_user(5, 6);
+    assert(indicator_colors[5] == 0 && indicator_colors[12] == 0x112233);
+    input_idle = 0;
+    layer_state = 1UL << POC_NORMAL_FIRST_LAYER;
+    rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
+    assert(indicator_colors[12] == 0x112233);
+    physical_keys[3][0] = false;
+    layer_state = 1UL << POC_CODEX_LAYER;
+    rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
+    for (uint8_t led = 0; led < RGB_MATRIX_LED_COUNT; ++led) assert(indicator_colors[led] == 0);
+    puts("PASS: held white overrides host all-off but not USB suspend, respects LED mapping/render ranges, leaves VIA alone and cannot stick across layer changes");
 }
 
 static void reset_saved_layout(void) {
@@ -760,18 +854,22 @@ static void test_shared_rgb_power(void) {
     layer_state = 1UL << POC_CODEX_LAYER;
     feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"c\":3166206,\"b\":1,\"e\":1}]}", true);
     codex_micro_send_action_key(CODEX_MICRO_ACTION_06, true);
+    physical_keys[2][0] = true;
     rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
     assert(indicator_colors[1] == 0x304FFE && indicator_colors[8] == 0xFFFFFF && indicator_colors[0] == 0 && indicator_colors[12] == 0);
     feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"e\":0}]}", true);
     rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
-    for (uint8_t led = 0; led < RGB_MATRIX_LED_COUNT; ++led) assert(indicator_colors[led] == 0);
+    for (uint8_t led = 0; led < RGB_MATRIX_LED_COUNT; ++led) assert(indicator_colors[led] == (led == 8 ? 0xFFFFFF : 0));
     feed("{\"method\":\"device.status\",\"id\":810009}", true);
     assert(poc_power_should_sleep());
+    rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
+    assert(indicator_colors[8] == 0xFFFFFF);
     feed("{\"method\":\"v.oai.thstatus\",\"params\":[{\"id\":0,\"e\":1}]}", true);
     rgb_matrix_indicators_advanced_user(0, RGB_MATRIX_LED_COUNT);
     assert(indicator_colors[1] == 0x304FFE && indicator_colors[8] == 0xFFFFFF && indicator_colors[0] == 0 && indicator_colors[12] == 0);
     input_idle = 0;
-    puts("PASS: real RGB indicator gates VIA/Codex output with shared power, valid VIA packets renew it, and explicit all-off outranks local ACT white without losing host colors");
+    physical_keys[2][0] = false;
+    puts("PASS: shared power gates host backgrounds, VIA traffic renews activity, and held physical keys override host all-off without losing host colors");
 }
 
 static void test_codex_l0_migration(void) {
@@ -994,6 +1092,9 @@ int main(void) {
     test_protocol_body_and_status();
     test_encoders_and_layer_actions();
     test_ambient_layer_key_priority();
+    test_all_physical_key_feedback();
+    test_physical_feedback_priority();
+    test_physical_feedback_gates_and_ranges();
     test_four_layer_migration();
     test_codex_via_overrides();
     test_codex_native_fallback();

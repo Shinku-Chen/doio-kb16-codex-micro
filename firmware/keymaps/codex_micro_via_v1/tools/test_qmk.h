@@ -22,6 +22,9 @@ void test_set_color(uint8_t index, uint8_t red, uint8_t green, uint8_t blue);
 #define PROGMEM
 #define MATRIX_ROWS 4
 #define MATRIX_COLS 5
+typedef struct { uint8_t matrix_co[MATRIX_ROWS][MATRIX_COLS]; } led_config_t;
+extern led_config_t g_led_config;
+bool matrix_is_on(uint8_t row, uint8_t column);
 #define NUM_ENCODERS 3
 #define NUM_DIRECTIONS 2
 #define ENCODER_MAP_ENABLE
