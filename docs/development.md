@@ -1,5 +1,28 @@
 # 开发与构建
 
+## 2026-11-04：功能分支在 Windows 刷写
+
+按用户授权，由 Orca Worker 在插着键盘的 Shinku-PC（Windows）完成刷写，未在 Mac 操作 USB。源码为功能分支 `feat/codex-lighting-and-idle` 的 `db2cdf123bb84c7d9f8eafddc8ef484fab745d28`，使用 [GitHub Actions 41818461383](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41818461383) 的流水线产物，不使用本地编译镜像；未合入 main、创建标签或发布 Release。
+
+- 该 `workflow_dispatch` 成功，80 组固件回归及 13 项打包测试通过。Artifact 为 `firmware-0.7.0-qmk-db2cdf123bb8`（id `13315169860`），BUILD-INFO.json 记录相同源码、固定 QMK `f5db962110615fd263c3ebf9f0402e7c2b08fbe4`、`github-actions`、空标签及本次 run id。
+- 新 BIN 为 51,320 字节，SHA-256 `d1d9aa2153623b5c15f166536b851587677fcdcae76e84a6a14688d6687e09e3`。版本字符串仍是 `0.7.0-qmk`，但与正式 v0.7.0 Release 不是同一镜像，必须按源码及 SHA 区分，不能只凭版本 RPC 判断新旧。
+- 确认唯一 `1EAF:0003` 的 alt 2 标为 `Upload to Flash 0x8002000`，仅下载应用区 `0x08002000`。应用主体 51,304 字节一次写入至 100%，`Download done.`，工具退出 0，进入 `dfuMANIFEST-WAIT-RESET`。未报告擦除错误、UNKNOWN 或 PIPE，也没有重复写入。
+- 下载后仍停在 DFU，随后一次断电重插，正常枚举 `303A:8360`，DFU 消失。19:12 冷启动后的既有 RPC 记录返回 `0.7.0-qmk`、`profile_index=0`、`layer_index=1`；协议层号为实际 QMK 层加 1，因此该值是 Codex L0，不是普通 VIA L1。
+- 已下载并校验、但未刷入的回退镜像为正式 v0.7.0 Release BIN，51,320 字节，SHA-256 `cbf82655e3e4da6d9db806f2713234859b51bf919fd3084cf14511ea7ea858bc`。
+- 2026-11-04 用户明确确认“按下白光”功能正常；该目视确认针对本节的 `db2cdf1` 开发镜像（版本字符串仍为 `0.7.0-qmk`）。源码设计为每个方键仅对应 LED 亮白、多键分别叠加，软件回归覆盖这类行为；此次反馈不作为逐键光度或所有组合均实测的证据，也不是正式 `0.7.1-qmk` 已刷入的证据。
+
+验收边界：白光按压行为已按用户 2026-11-04 的明确确认记为通过，范围如上；不再保留“单键白光范围未确认”的旧表述。普通 VIA 层不新增白光、普通层灯光、真实长时间无空闲关闭、Flash 读回仍未验收；正式 `0.7.1-qmk` 未再次刷入，不能写成 0.7.1 已实机刷过。Artifact ZIP 落盘摘要、dfu-util.exe 摘要、重插精确时刻及重枚举后 devnum 未记录，不扩大为完整供应链或时序验证。
+
+刷写执行电脑的日志目录为 `%LOCALAPPDATA%\Temp\kb16-flash-20261104`，包含 `SUMMARY.txt`、`flash-41818461383.log` 和 `run-41818461383.log`。本节依据 Orca Worker 的最终刷写与只读复核回执记录；用户随后明确确认“按下白光”通过，早期含糊的“16 个方键全白”不再作为否定验收的依据。本次补记不再操作硬件。
+
+## 2026-11-04：0.7.1-qmk 发布候选准备
+
+将 `CODEX_MICRO_VERSION` 从 `0.7.0-qmk` 更新为 `0.7.1-qmk`，新增 `docs/releases/v0.7.1-qmk.md`，同步中英文 README、CHANGELOG、使用/需求/键位/双模式/OLED/开发/灯光文档及布局图版本标签。仅改版本 metadata 与发布文档，不修改硬件、EEPROM、VIA 层序、RGB/OLED 行为或刷写流程；0.7.0 → 0.7.1 不新增迁移。
+
+本地验证使用固定 QMK `f5db962110615fd263c3ebf9f0402e7c2b08fbe4`、Arm GNU Toolchain 15.3.Rel2 和独立 scratch 树：`apply-core-patches.sh`、`qmk compile -kb doio/kb16/rev2 -km codex_micro_via_v1`、80 组固件回归、13 项打包测试及 `release_bundle` 的 BIN 应用区/DFU CRC/双 USB 描述符与 BIN/HEX 一致性校验通过。本地 BIN 为 51,320 字节，SHA-256 `b99e1f6a7002c321ce1a89829cfc0b66987cafdafd85447f6394225b2dadb0c1`；该文件只作开发验证，不上传、不刷入，正式附件仍由 `v0.7.1-qmk` 标签的 GitHub Actions 生成。
+
+候选准备阶段未 commit/push/tag/Release，也未操作 USB；后续由 Lead 按用户授权提交候选并用新标签触发正式流水线，不重复刷写；正式 `0.7.1-qmk` 未刷入。白光行为验收来自上一节 `db2cdf1` 同逻辑开发镜像；普通 VIA 层不新增白光、普通层灯光、真实长时间无空闲关闭及 Flash 读回仍未验收。
+
 ## 0.7.0 实机刷写与当前说明
 
 2026-11-02 按用户要求下载并刷入正式 [v0.7.0-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.0-qmk) 附件，来源为标签提交 `cdbcd5765145785f80813825cabfaa9f07fb569d`、[流水线 41444158985](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41444158985)。五份附件齐全，BUILD-INFO.json、BIN、HEX、VIA 定义的 SHA-256 均与 SHA256SUMS 一致；BIN 为 51,320 字节，SHA-256 `cbf82655e3e4da6d9db806f2713234859b51bf919fd3084cf14511ea7ea858bc`。

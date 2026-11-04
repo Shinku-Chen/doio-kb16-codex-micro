@@ -8,16 +8,16 @@
 
 ## 固件下载与当前版本
 
-> **当前版本 `0.7.0-qmk`：Codex L0 全部按键、旋钮按下和旋转均为 VIA 优先；`KC_NO` / `KC_TRNS` 恢复该位置原生 Codex 功能。** 提供三层普通 VIA 键盘、任务灯、OLED 输出提示和一小时空闲休眠。详见 [Codex / VIA 混合层](docs/codex-via-keys.md)。
+> **当前版本 `0.7.1-qmk`：Codex L0 全部按键、旋钮按下和旋转均为 VIA 优先；`KC_NO` / `KC_TRNS` 恢复该位置原生 Codex 功能。** 提供三层普通 VIA 键盘、任务灯、OLED 输出提示。Codex L0 的 16 个方键逐键按住白光；Codex RGB/OLED 不再因一小时空闲关闭，仅普通 VIA L1–L3 保留。详见 [Codex / VIA 混合层](docs/codex-via-keys.md)。
 
-> **未发布的源码变更**：Codex 全部 16 个方键按住白光具有最高软件优先级，松开恢复最新任务/环境灯态；Codex RGB/OLED 不再因一小时空闲关闭，仅普通 VIA 层保留该计时。下方灯光说明包含这些变更；现有 `v0.7.0-qmk` 附件不包含，本次也未刷机。
+> **验收状态**：2026-11-04 用户已确认按压白光功能，基于 `db2cdf1` 同逻辑流水线开发镜像（版本字符串仍为 `0.7.0-qmk`）。正式 `0.7.1-qmk` 未再次刷入；普通 VIA 层灯光、真实长时间空闲和 Flash 读回未验收，未做光度测量。见 [刷写记录](docs/development.md#2026-11-04功能分支在-windows-刷写)。
 
 切层动作由 VIA 自行配置：`MO(1)` 按住进入普通 L1、松开返回，`TT(1)` 兼顾按住与连续点按锁层，`TO(0)` 返回 Codex。具体行为见下方切层说明。
 
-- **[v0.7.0-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.0-qmk)**：固件 `.bin` / `.hex`、VIA 定义、`BUILD-INFO.json` 和 `SHA256SUMS`。
+- **[v0.7.1-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.1-qmk)**：固件 `.bin` / `.hex`、VIA 定义、`BUILD-INFO.json` 和 `SHA256SUMS`，正式附件仅由该标签的 GitHub Actions 生成。
 - Git 仓库只保存源码、定义和文档；编译产物只放 Release。升级前导出 VIA 配置并检查 L0 按键及旋钮映射；已保存的普通映射会覆盖该位置的 Codex 功能。导入备份前检查页序和层动作目标。
 - **正式固件由 [GitHub Actions](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/workflows/firmware.yml) 从标签源码生成和发布，不使用本机编译附件。** `BUILD-INFO.json` 记录源码提交、QMK/编译器版本、流水线链接及资产摘要，最终校验和见 `SHA256SUMS`。
-- 当前版本已完成流水线测试、编译和实机刷写，断电重启后的版本及状态查询均确认 `0.7.0-qmk`。逐项功能、OLED 目视和一小时休眠仍需单独验收，详见 [开发与验证](docs/development.md)。
+- 设备已刷入同逻辑 `db2cdf1` 开发镜像；本次发布准备相对此镜像仅更新版本和文档，正式 `0.7.1-qmk` 尚未再次刷入。与旧正式 `0.7.0-qmk` 相比，本版新增逐键白光优先和 Codex 无空闲超时；普通层灯光/一小时休眠、Codex 长时间保持及 Flash 读回仍有验收边界，详见 [开发与验证](docs/development.md)。
 
 ## 刷机：拆机按内部 RESET
 
@@ -30,7 +30,7 @@
 ```bash
 # 在固件文件所在目录执行；命令先等待设备，再按内部 RESET
 dfu-util -w -a 2 -d 1EAF:0003 \
-  -D doio_kb16_rev2_codex_micro_v0.7.0-qmk.bin
+  -D doio_kb16_rev2_codex_micro_v0.7.1-qmk.bin
 ```
 
 4. 下载期间不要拔线或再按复位。若只重启、没捕获 DFU，先确认等待命令仍在，再重新尝试内部 RESET；出现 `UNKNOWN` / `LIBUSB_ERROR_PIPE` 则停止，断电重新进入，不做全片擦除或解保护。

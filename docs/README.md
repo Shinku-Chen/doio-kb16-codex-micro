@@ -2,11 +2,11 @@
 
 本仓库是 DOIO KB16-01 Rev2 的 Codex Micro 兼容固件与工具的工作副本。目标是把 16 键 + 3 旋钮 + 128×32 OLED 的 KB16 作为 Codex Micro 控制器使用。
 
-> 当前版本 `0.7.0-qmk`：L0 Codex 全部按键/旋钮 VIA 优先，KC_NO/KC_TRNS 回退原生；L1–L3 普通 VIA，自配 MO/TO，无固定长按。75 组固件检查、13 项打包测试及本地编译通过，正式镜像由标签流水线生成；本版未刷机，实机基线仍为 0.6.0。详见 [混合层](codex-via-keys.md)、[开发](development.md)。刷机需拆外壳按内部 RESET，见 [使用](usage.md)；展示见 [中文 README](../README.md) / [English README](../README.en.md)。
+> 当前版本 `0.7.1-qmk`：L0 Codex 全部按键/旋钮 VIA 优先，KC_NO/KC_TRNS 回退原生；L1–L3 普通 VIA，自配 MO/TO，无固定长按。Codex L0 全部 16 个方键逐键按住白光；Codex RGB/OLED 不再一小时空闲关闭，仅普通 VIA L1–L3 保留。80 组固件检查、13 项打包测试及本地编译通过，正式镜像由标签流水线生成。2026-11-04 用户确认“按下白光”通过（基于 `db2cdf1` 同逻辑开发镜像）；正式 0.7.1 未刷入，普通层灯光、真实长时间无空闲关闭及 Flash 读回未验收。详见 [混合层](codex-via-keys.md)、[开发](development.md)。刷机需拆外壳按内部 RESET，见 [使用](usage.md)；展示见 [中文 README](../README.md) / [English README](../README.en.md)。
 
 ## 快速开始
 
-`0.7.0-qmk` 已将 L0 扩展为全部按键/旋钮 VIA 优先、空键/透明键回退 Codex 默认；本版未刷机，实机基线仍为 0.6.0，新规则见 [Codex / VIA 混合层](codex-via-keys.md)。灯光与普通层不变，现有配置保留，原先未执行的第一页编辑也会生效，升级前备份检查。
+`0.7.1-qmk` 在 `0.7.0-qmk` 的 L0 VIA 优先/空键回退基础上，加入 Codex L0 逐键按住白光和取消 Codex 一小时空闲关闭；普通 VIA L1–L3 仍保留一小时计时。现有配置保留，0.7.0→0.7.1 不新增迁移；升级前备份检查。灯光与普通层验收边界见 [灯光规则](lighting.md) 和 [刷写记录](development.md#2026-11-04功能分支在-windows-刷写)。
 
 1. 确认硬件：DOIO KB16-01 **Rev2**（APM32F103CBT6），不是 Rev1 或无线版。
 2. 正式固件从 [Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases) 下载流水线附件，核对来源及 SHA-256 后刷入；本地构建只用于开发（见 `development.md`、`usage.md`）。
@@ -15,7 +15,7 @@
 
 ## 文档索引
 
-- `codex-via-keys.md` — 0.7.0 L0 全部 VIA 覆盖、空键回退、自配 MO/TO、旧配置和 OLED 提示
+- `codex-via-keys.md` — 0.7.1 L0 全部 VIA 覆盖、空键回退、逐键白光、Codex 无空闲关闭、自配 MO/TO 和 OLED 提示
 - `firmware-audit-2026-10-30.md` — 当前固件跨仓库检查、离线复现、构建结果与通信诊断修正
 - `lighting.md` — GPT 原色、Idle 常亮 5%、环境四灯同步呼吸、录音海绿常亮、AG 灯效和完整对照表
 - `via-dual-mode.md` — QMK + VIA 双模式：USB 身份、10 秒窗口、层模型、构建

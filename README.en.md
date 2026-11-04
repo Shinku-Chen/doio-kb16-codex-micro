@@ -8,16 +8,16 @@ Turn a **DOIO KB16-01 Rev2** into a Codex Micro-compatible controller while keep
 
 ## Download and version
 
-> **Current version `0.7.0-qmk`: VIA overrides every L0 key, encoder click and rotation direction; `KC_NO` / `KC_TRNS` restores the native function at that position.** Four layers combine Codex controls with three ordinary keyboard layers. See the [hybrid-layer guide](docs/codex-via-keys.md).
+> **Current version `0.7.1-qmk`: VIA overrides every L0 key, encoder click and rotation direction; `KC_NO` / `KC_TRNS` restores the native function at that position.** Four layers combine Codex controls with three ordinary keyboard layers. Each Codex L0 square key shows press-white on its own LED; Codex RGB/OLED no longer have a one-hour idle timeout, while ordinary VIA L1–L3 retain it. See the [hybrid-layer guide](docs/codex-via-keys.md).
 
-> **Unreleased source changes**: held white has the highest software priority on all 16 Codex square keys; release restores the latest task/ambient state. Codex RGB/OLED no longer have a one-hour idle timeout; only ordinary VIA layers retain it. The lighting descriptions below include these changes. Existing `v0.7.0-qmk` assets do not; these changes have not been flashed.
+> **Acceptance status**: on 2026-11-04 the user confirmed press-white functionality on the equivalent `db2cdf1` pipeline development image (still reporting `0.7.0-qmk`). The official `0.7.1-qmk` image has not been flashed again. Ordinary VIA lighting, prolonged idle and Flash readback remain untested; no photometric measurements were performed. See the [flash record](docs/development.md#2026-11-04功能分支在-windows-刷写).
 
 Configure layer actions in VIA: `MO(1)` holds ordinary L1 and returns on release, `TT(1)` combines holding with rapid-tap locking, and `TO(0)` returns to Codex. See the switching guide below.
 
-- **[v0.7.0-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.0-qmk)** includes `.bin`, `.hex`, the VIA definition, `BUILD-INFO.json` and `SHA256SUMS`.
+- **[v0.7.1-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.1-qmk)** includes `.bin`, `.hex`, the VIA definition, `BUILD-INFO.json` and `SHA256SUMS`, built only by the tag's GitHub Actions workflow.
 - Git contains source, definitions and documentation; firmware binaries are Release assets. Export and inspect your VIA configuration before flashing, and check the page order and layer-action targets before importing a backup.
 - **Official assets are built from tagged source and published by [GitHub Actions](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/workflows/firmware.yml).** `BUILD-INFO.json` records source/QMK/compiler versions, workflow URL and asset hashes. Verify the downloaded files against `SHA256SUMS`.
-- This release has been flashed to the project's Rev2 keyboard; `sys.version` and `device.status` both confirmed `0.7.0-qmk` after a power-cycle. This does not establish complete hardware acceptance of every key, OLED state, light effect or one-hour sleep behavior. See [validation notes](docs/development.md).
+- The device runs the equivalent `db2cdf1` development image; release preparation changes only version metadata and documentation relative to that image. The official `0.7.1-qmk` has not been flashed again. Compared with the old official `0.7.0-qmk`, this release adds per-key white priority and no Codex idle timeout. Ordinary-layer lighting/one-hour sleep, prolonged Codex idle and Flash readback remain outside hardware acceptance; see [validation notes](docs/development.md).
 
 ## Flashing: open the case and use internal RESET
 
@@ -30,7 +30,7 @@ Configure layer actions in VIA: `MO(1)` holds ordinary L1 and returns on release
 ```bash
 # Run from the downloaded firmware directory, then press internal RESET.
 dfu-util -w -a 2 -d 1EAF:0003 \
-  -D doio_kb16_rev2_codex_micro_v0.7.0-qmk.bin
+  -D doio_kb16_rev2_codex_micro_v0.7.1-qmk.bin
 ```
 
 4. Do not disconnect or reset during download. If the board only restarts, ensure the waiting command is still running before retrying internal RESET. Stop on `UNKNOWN` / `LIBUSB_ERROR_PIPE`, power-cycle and re-enter DFU; never mass-erase or unprotect.

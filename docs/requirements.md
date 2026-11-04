@@ -1,6 +1,6 @@
 # DOIO KB16 Codex Micro 固件需求文档
 
-> 当前版本 `0.7.0-qmk`：第一页 L0 为 Codex，全部按键、三个旋钮按下及旋转均为 VIA 优先；KC_NO/KC_TRNS 回退该位置原生功能。L1–L3 普通 VIA、10 秒窗口、无固定长按退出及灯光策略不变。本版未刷机，实机基线仍为 0.6.0；[完整规则](codex-via-keys.md)。
+> 当前版本 `0.7.1-qmk`：第一页 L0 为 Codex，全部按键、三个旋钮按下及旋转均为 VIA 优先；KC_NO/KC_TRNS 回退该位置原生功能。L1–L3 普通 VIA、10 秒窗口、无固定长按退出。Codex L0 全部 16 个方键逐键按住白光，Codex RGB/OLED 取消一小时空闲关闭，仅普通 VIA L1–L3 保留；USB 挂起全灭。2026-11-04 用户确认“按下白光”通过（`db2cdf1` 同逻辑开发镜像）；正式 0.7.1 未刷入，普通层灯光、真实长时间无空闲关闭及 Flash 读回未验收。[完整规则](codex-via-keys.md)。
 > 硬件：DOIO KB16-01 Rev2，APM32F103CBT6，128 KB Flash / 20 KB RAM。
 > 仓库只负责生成固件：QMK + VIA，不包含 Mapper；Git 不提交预编译产物，固件通过 GitHub Release 分发。
 

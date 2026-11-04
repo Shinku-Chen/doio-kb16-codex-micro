@@ -1,6 +1,6 @@
 # QMK + VIA 双模式
 
-当前源码 `0.7.0-qmk`：Codex 第一页 L0 全部按键/旋钮 VIA 优先，空键回退原生功能；L1–L3 普通 VIA。无固定长按退出，切层由用户配置。本版未刷机，实机基线仍为 0.6.0-qmk。
+当前版本 `0.7.1-qmk`：Codex 第一页 L0 全部按键/旋钮 VIA 优先，空键回退原生功能；L1–L3 普通 VIA。无固定长按退出，切层由用户配置。Codex L0 支持逐键按住白光；Codex RGB/OLED 取消一小时空闲关闭，仅普通 VIA 层保留；USB 挂起全灭。2026-11-04 用户确认“按下白光”通过（`db2cdf1` 同逻辑开发镜像）；正式 0.7.1 未刷入。
 
 ## 四层模型
 
@@ -56,4 +56,4 @@ qmk compile -kb doio/kb16/rev2 -km codex_micro_via_v1
 
 固定 QMK `f5db962110615fd263c3ebf9f0402e7c2b08fbe4`。core patch 包括 USB 双描述符、报告边界/控制队列、VIA 可见层数、WS2812 PWM DMA，以及仅当前双模式启用的普通层透明继承隔离；未改 QMK layer_on/off/invert/xor 的标准语义。
 
-本地构建只作开发验证，正式镜像由 GitHub Actions 生成；本轮按授权提交推送，以 v0.7.0-qmk 标签触发构建和发布；不刷机，实机基线仍为 0.6.0-qmk。历史 CI/实机记录、官方回退镜像和哈希见 [开发](development.md)，拆机使用内部 RESET 的方法见 [使用与刷写](usage.md)。
+本地构建只作开发验证，正式镜像由 GitHub Actions 生成；`0.7.1-qmk` 发布准备相对已测 `db2cdf1` 仅改版本/文档，正式附件由 `v0.7.1-qmk` 标签的流水线生成，不刷机。历史 CI/实机记录、官方回退镜像和哈希见 [开发](development.md)，拆机使用内部 RESET 的方法见 [使用与刷写](usage.md)。

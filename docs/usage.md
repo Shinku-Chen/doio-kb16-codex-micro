@@ -2,7 +2,7 @@
 
 ## 当前 QMK + VIA 固件（主实现）
 
-**当前版本 0.7.0-qmk：** L0 全部按键、旋钮按下和旋转均由 VIA 优先覆盖；空键/透明键恢复对应 Codex 默认，不再限五处。普通 L1–L3、灯光及十秒 USB 身份协商不变；所有已有配置保留，之前存着但未执行的 L0 编辑也会生效，升级前导出并检查。本版未刷机，实机基线仍为 0.6.0；当前下载与命令见下方 0.7.0 小节，0.6.0 段为历史示例。详见 [执行规则](codex-via-keys.md)。
+**当前版本 0.7.1-qmk：** L0 全部按键、旋钮按下和旋转均由 VIA 优先覆盖；空键/透明键恢复对应 Codex 默认，不再限五处。Codex L0 全部 16 个方键逐键按住白光；Codex RGB/OLED 取消一小时空闲关闭，仅普通 VIA L1–L3 保留；USB 挂起全灭。普通 L1–L3、十秒 USB 身份协商及已有配置保留，0.7.0→0.7.1 不新增迁移。2026-11-04 用户确认“按下白光”通过（`db2cdf1` 同逻辑开发镜像）；正式 0.7.1 未刷入，普通层灯光、真实长时间无空闲关闭及 Flash 读回未验收。当前下载与命令见下方 0.7.1 小节，0.7.0/0.6.0 段为历史示例。详见 [执行规则](codex-via-keys.md)。
 
 历史版本 `0.6.0-qmk`：Codex 在第一页 L0，普通层在 L1–L3；五处直接读取 VIA，取消固定长按退出。L0 配 MO(1) 按住临时普通 L1、松开返回；普通层 TO(0) 回 Codex。原配置及层动作一次迁移，先导出备份。本版以 [v0.6.0-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.6.0-qmk) 分发，已刷入同源 main 流水线 Artifact；版本应答为 0.6.0-qmk，当前 Codex L0；[完整说明](codex-via-keys.md)。**下方 0.4.9 下载与实机验收段为旧版本示例，不是当前源码的层序/退出方式。**
 
@@ -20,7 +20,20 @@
 - macOS 或 Windows；刷写需要 `dfu-util` 或 QMK Toolbox。
 - ChatGPT/Codex 桌面版（macOS 14+ / Windows 10+）。
 
-## 0.7.0 流水线固件刷写
+## 0.7.1 流水线固件刷写
+
+从 [v0.7.1-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.1-qmk) 下载五份流水线附件并检查 BUILD-INFO.json、SHA256SUMS。升级前导出并检查 L0 按键/按压/旋转；0.7.0→0.7.1 不新增迁移、不清空配置。Codex L0 新增逐键按住白光和取消一小时空闲关闭；普通 VIA L1–L3 的灯光/空闲策略不变。
+
+断开 USB 拆开外壳，露出 PCB 内部 RESET 并做好绝缘；接回 USB，先执行等待命令，再短按内部 RESET 并松开：
+
+```bash
+dfu-util -w -a 2 -d 1EAF:0003 \
+  -D doio_kb16_rev2_codex_micro_v0.7.1-qmk.bin
+```
+
+仅允许 Maple alt 2 应用区 `0x08002000`；不要改 Bootloader、读保护或做全片擦除。下载期间不拔线；完成后核对重新枚举和 0.7.1-qmk 版本，不因复位阶段返回 74 就重复刷。异常恢复、断电拆机和来源/哈希检查继续遵守下方完整步骤，替换为本版附件。**本轮发布不自动刷机；正式 0.7.1 未实机刷入。白光行为验收来自 `db2cdf1` 同逻辑开发镜像；普通层灯光、真实长时间无空闲关闭及 Flash 读回未验收。**
+
+## 历史：0.7.0 流水线固件刷写
 
 从 [v0.7.0-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.0-qmk) 下载五份流水线附件并检查 BUILD-INFO.json、SHA256SUMS。升级前导出并检查 L0 按键/按压/旋转：原先保存但不执行的编辑现在会生效，清空 KC_NO/KC_TRNS 恢复原生；0.6→0.7 不清空配置、不新增迁移。
 
