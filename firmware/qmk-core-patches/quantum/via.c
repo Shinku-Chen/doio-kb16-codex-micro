@@ -34,8 +34,11 @@
 #include "matrix.h"
 #include "timer.h"
 #include "wait.h"
-#include "version.h" // for QMK_BUILDDATE used in EEPROM magic
 #include "nvm_via.h"
+
+#define VIA_EEPROM_MARKER_0 'K'
+#define VIA_EEPROM_MARKER_1 'B'
+#define VIA_EEPROM_SCHEMA_VERSION 0x01
 
 #if defined(SECURE_ENABLE)
 #    include "secure.h"
@@ -68,28 +71,19 @@
 // Can be called in an overriding via_init_kb() to test if keyboard level code usage of
 // EEPROM is invalid and use/save defaults.
 bool via_eeprom_is_valid(void) {
-    char   *p      = QMK_BUILDDATE; // e.g. "2019-11-05-11:29:54"
-    uint8_t magic0 = ((p[2] & 0x0F) << 4) | (p[3] & 0x0F);
-    uint8_t magic1 = ((p[5] & 0x0F) << 4) | (p[6] & 0x0F);
-    uint8_t magic2 = ((p[8] & 0x0F) << 4) | (p[9] & 0x0F);
-
     uint8_t ee_magic0;
     uint8_t ee_magic1;
     uint8_t ee_magic2;
     nvm_via_read_magic(&ee_magic0, &ee_magic1, &ee_magic2);
 
-    return ee_magic0 == magic0 && ee_magic1 == magic1 && ee_magic2 == magic2;
+    return ee_magic0 == VIA_EEPROM_MARKER_0 && ee_magic1 == VIA_EEPROM_MARKER_1 && ee_magic2 == VIA_EEPROM_SCHEMA_VERSION;
 }
 
 // Sets VIA/keyboard level usage of EEPROM to valid/invalid
 // Keyboard level code (eg. via_init_kb()) should not call this
 void via_eeprom_set_valid(bool valid) {
     if (valid) {
-        char   *p      = QMK_BUILDDATE; // e.g. "2019-11-05-11:29:54"
-        uint8_t magic0 = ((p[2] & 0x0F) << 4) | (p[3] & 0x0F);
-        uint8_t magic1 = ((p[5] & 0x0F) << 4) | (p[6] & 0x0F);
-        uint8_t magic2 = ((p[8] & 0x0F) << 4) | (p[9] & 0x0F);
-        nvm_via_update_magic(magic0, magic1, magic2);
+        nvm_via_update_magic(VIA_EEPROM_MARKER_0, VIA_EEPROM_MARKER_1, VIA_EEPROM_SCHEMA_VERSION);
     } else {
         nvm_via_update_magic(0xFF, 0xFF, 0xFF);
     }

@@ -8,16 +8,18 @@ Turn a **DOIO KB16-01 Rev2** into a Codex Micro-compatible controller while keep
 
 ## Download and version
 
-> **Current version `0.7.1-qmk`: VIA overrides every L0 key, encoder click and rotation direction; `KC_NO` / `KC_TRNS` restores the native function at that position.** Four layers combine Codex controls with three ordinary keyboard layers. Each Codex L0 square key shows press-white on its own LED; Codex RGB/OLED no longer have a one-hour idle timeout, while ordinary VIA L1–L3 retain it. See the [hybrid-layer guide](docs/codex-via-keys.md).
+> **Current version `0.7.2-qmk`: VIA overrides every L0 key, encoder click and rotation direction; `KC_NO` / `KC_TRNS` restores the native function at that position.** Four layers combine Codex controls with three ordinary keyboard layers. Each Codex L0 square key shows press-white on its own LED; Codex RGB/OLED no longer have a one-hour idle timeout, while ordinary VIA L1–L3 retain it. See the [hybrid-layer guide](docs/codex-via-keys.md).
 
-> **Acceptance status**: on 2026-11-04 the user confirmed press-white functionality on the equivalent `db2cdf1` pipeline development image (still reporting `0.7.0-qmk`). The official `0.7.1-qmk` image has not been flashed again. Ordinary VIA lighting, prolonged idle and Flash readback remain untested; no photometric measurements were performed. See the [flash record](docs/development.md#2026-11-04功能分支在-windows-刷写).
+> **0.7.2 EEPROM compatibility fix (read before upgrading)**: 0.7.2 fixes VIA configuration being reset after flashing firmware built on a different date. VIA accepts only a fixed `KB` + schema 1 three-byte marker. It validates the format marker only, not a payload CRC, so arbitrary content damage is not guaranteed to be detected. **The first upgrade from 0.7.1 or older restores VIA defaults once (keymap/encoders/macros/layout options) and writes the new marker; export your VIA configuration and retain a recovery image first.** Later builds with the same schema preserve those settings across build dates/firmware versions. Old date markers, old schemas and blank/unknown EEPROM all restore VIA defaults, with no page-order/custom-position migration and no extra reset of RGB or other QMK global settings (QMK's own invalid global marker still follows its original initialization). EEPROM addresses and the `VIA_EEPROM_ALLOW_RESET` remote-clear permission are unchanged (the latter remains disabled).
+
+> **Acceptance status**: on 2026-11-04 the user confirmed press-white functionality on the equivalent `db2cdf1` pipeline development image (still reporting `0.7.0-qmk`). The official `0.7.2-qmk` has not been flashed. The 0.7.2 EEPROM fix is host/pipeline validated only; no hardware EEPROM power-loss or Flash readback test was performed. Ordinary VIA lighting, prolonged idle and photometric measurements remain untested. See the [flash record](docs/development.md#2026-11-04功能分支在-windows-刷写).
 
 Configure layer actions in VIA: `MO(1)` holds ordinary L1 and returns on release, `TT(1)` combines holding with rapid-tap locking, and `TO(0)` returns to Codex. See the switching guide below.
 
-- **[v0.7.1-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.1-qmk)** includes `.bin`, `.hex`, the VIA definition, `BUILD-INFO.json` and `SHA256SUMS`, built only by the tag's GitHub Actions workflow.
+- **[v0.7.2-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.2-qmk)** includes `.bin`, `.hex`, the VIA definition, `BUILD-INFO.json` and `SHA256SUMS`, built only by the tag's GitHub Actions workflow.
 - Git contains source, definitions and documentation; firmware binaries are Release assets. Export and inspect your VIA configuration before flashing, and check the page order and layer-action targets before importing a backup.
 - **Official assets are built from tagged source and published by [GitHub Actions](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/workflows/firmware.yml).** `BUILD-INFO.json` records source/QMK/compiler versions, workflow URL and asset hashes. Verify the downloaded files against `SHA256SUMS`.
-- The device runs the equivalent `db2cdf1` development image; release preparation changes only version metadata and documentation relative to that image. The official `0.7.1-qmk` has not been flashed again. Compared with the old official `0.7.0-qmk`, this release adds per-key white priority and no Codex idle timeout. Ordinary-layer lighting/one-hour sleep, prolonged Codex idle and Flash readback remain outside hardware acceptance; see [validation notes](docs/development.md).
+- `0.7.2-qmk` retains the 0.7.1 per-key white priority and no Codex idle timeout, and adds the EEPROM compatibility fix above. Relative to the already-validated EEPROM fix source, this release preparation changes only version metadata/documentation and does not change runtime logic. The official `0.7.2-qmk` has not been flashed. Ordinary-layer lighting/one-hour sleep, prolonged Codex idle and Flash readback remain outside hardware acceptance; see [validation notes](docs/development.md).
 
 ## Flashing: open the case and use internal RESET
 
@@ -30,7 +32,7 @@ Configure layer actions in VIA: `MO(1)` holds ordinary L1 and returns on release
 ```bash
 # Run from the downloaded firmware directory, then press internal RESET.
 dfu-util -w -a 2 -d 1EAF:0003 \
-  -D doio_kb16_rev2_codex_micro_v0.7.1-qmk.bin
+  -D doio_kb16_rev2_codex_micro_v0.7.2-qmk.bin
 ```
 
 4. Do not disconnect or reset during download. If the board only restarts, ensure the waiting command is still running before retrying internal RESET. Stop on `UNKNOWN` / `LIBUSB_ERROR_PIPE`, power-cycle and re-enter DFU; never mass-erase or unprotect.

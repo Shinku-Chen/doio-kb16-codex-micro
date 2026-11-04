@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.2-qmk — 2026-11-04
+
+- 将 `CODEX_MICRO_VERSION` 更新为 `0.7.2-qmk`，新增 `docs/releases/v0.7.2-qmk.md`，同步当前版 README、使用/需求/开发/灯光等入口文档和布局图版本标签；0.7.2 相对 0.7.1 有 VIA 配置兼容行为修复，当前发布准备相对已验证的 EEPROM 修复源码只改版本 metadata、notes 和文档，不改运行逻辑。正式附件仅由 `v0.7.2-qmk` 标签的 GitHub Actions 生成，不上传本地镜像、不刷机。
+
+- EEPROM 兼容改为固定 `KB` + schema 1 的 VIA 三字节标记，不再用 `QMK_BUILDDATE` 或固件版本判断有效性；只校验格式标记，不检测 payload 损坏。当前 schema 在 VIA 配置初始化路径原样保留自定义键位、三个 encoder、宏和布局选项并零写，跨编译日期/固件版本保留；不宣称整个固件运行永不写 EEPROM。0.7.1/更旧的日期标记、旧 schema、未知值、全 FF、全 00 均恢复 VIA 默认并只写当前标记一次，不自动迁移旧页序或自定义位置，也不初始化 RGB 等 QMK 全局设置。保留 `EECONFIG_USER_DATA_SIZE=8`、`POC_EEPROM_RESERVED_LAYER_SLOTS=5` 及键位/编码器/宏地址容量；仅在布局或编码不兼容改变时手动升 schema。
+
 ## 0.7.1-qmk — 2026-11-04
 
 - 将 `CODEX_MICRO_VERSION` 更新为 `0.7.1-qmk`，新增 `docs/releases/v0.7.1-qmk.md`，同步双语 README、CHANGELOG、使用/需求/键位/双模式/OLED/开发/灯光文档及布局图版本标签；本次发布准备相对已测 `db2cdf1` 仅改版本 metadata 和文档，不新增 VIA/EEPROM 迁移，不覆盖旧标签或旧 Release 附件。

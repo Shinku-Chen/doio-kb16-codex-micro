@@ -138,16 +138,12 @@ with tempfile.TemporaryDirectory(prefix="kb16-tests-") as scratch:
     assert len(native_turns) == 3
     rows = ["{" + ", ".join(turns) + "}" for turns in native_turns]
     extracted.append("static const uint16_t native_encoders_under_test[3][2] = {" + ", ".join(rows) + "};")
-    for stamp in ("POC_LAYER_STAMP", "POC_FOUR_LAYER_STAMP", "POC_CUSTOM_KEYS_STAMP", "POC_CODEX_L0_STAMP"):
-        extracted.append(re.search(rf"#define {stamp} .*", source).group())
+    for forbidden in ("POC_LAYER_STAMP", "POC_FOUR_LAYER_STAMP", "POC_CUSTOM_KEYS_STAMP", "POC_CODEX_L0_STAMP", "POC_LEGACY_CODEX_LAYER", "poc_migrate_", "poc_check_layout_stamp", "poc_remap_legacy_codex_keycode", "poc_remap_shifted_layer_keycode", "poc_codex_custom_position"):
+        assert forbidden not in source, f"legacy migration path remains: {forbidden}"
     for signature in (
-        "static bool poc_codex_custom_position(", "static uint16_t poc_codex_resolve_keycode(",
+        "static uint16_t poc_codex_resolve_keycode(",
         "uint8_t poc_keymap_base_layer(", "uint16_t keymap_key_to_keycode(",
         "static void codex_send_action(", "bool process_record_user(", "void matrix_scan_user(",
-        "static void poc_check_layout_stamp(",
-        "static uint16_t poc_remap_legacy_codex_keycode(", "static void poc_migrate_four_layer_layout(",
-        "static void poc_migrate_codex_custom_keys(", "static uint16_t poc_remap_shifted_layer_keycode(",
-        "static void poc_migrate_codex_l0_layout(",
     ):
         extracted.append(function(source, signature))
     extracted.append(source[source.index("static bool codex_rgb_active;"):source.index("static void codex_rgb_init(void) {")])
@@ -182,6 +178,17 @@ with tempfile.TemporaryDirectory(prefix="kb16-tests-") as scratch:
     (directory / "via.h").write_text("#pragma once\n" + via_enum + "\nbool via_command_kb(uint8_t *data, uint8_t length);\n")
     (directory / "qmk_via_key_under_test.h").write_text(function((QMK / "quantum/via.c").read_text(), "bool process_record_via("))
 
+    via_init_source = (REPO / "firmware/qmk-core-patches/quantum/via.c").read_text()
+    assert "QMK_BUILDDATE" not in via_init_source
+    assert "version.h" not in via_init_source
+    via_init_parts = [re.search(rf"#define {name} .*", via_init_source).group() for name in ("VIA_EEPROM_MARKER_0", "VIA_EEPROM_MARKER_1", "VIA_EEPROM_SCHEMA_VERSION")]
+    via_init_parts.extend(function(via_init_source, signature) for signature in (
+        "bool via_eeprom_is_valid(void) {", "void via_eeprom_set_valid(bool valid) {",
+        "void via_init(void) {", "void eeconfig_init_via(void) {",
+        "uint32_t via_get_layout_options(void) {", "void via_set_layout_options(uint32_t value) {",
+    ))
+    (directory / "via_init_under_test.h").write_text("\n".join(via_init_parts))
+
     usb_source = (REPO / "firmware/qmk-core-patches/tmk_core/protocol/chibios/usb_main.c").read_text()
     (directory / "usb_input_under_test.h").write_text("\n".join(function(usb_source, signature) for signature in (
         "void send_keyboard(", "void send_nkro(", "void send_mouse(", "void send_extra(",
@@ -207,6 +214,8 @@ with tempfile.TemporaryDirectory(prefix="kb16-tests-") as scratch:
         KEYMAP / "tools/oled_test.c",
     ])
     compile_and_run(directory, "storage_layout", [KEYMAP / "tools/storage_layout_test.c"])
+    compile_and_run(directory, "via_init_a", [KEYMAP / "tools/via_init_test.c"], defines=('-DQMK_BUILDDATE="2026-11-04-21:00:00"',))
+    compile_and_run(directory, "via_init_b", [KEYMAP / "tools/via_init_test.c"], defines=('-DQMK_BUILDDATE="2027-01-01-00:00:00"',))
     compile_and_run(directory, "power", [KEYMAP / "poc_power.c", KEYMAP / "tools/power_test.c"])
     compile_and_run(directory, "startup", [KEYMAP / "tools/startup_test.c"])
     positions = check_via_layout()

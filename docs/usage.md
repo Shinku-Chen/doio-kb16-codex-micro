@@ -2,7 +2,7 @@
 
 ## 当前 QMK + VIA 固件（主实现）
 
-**当前版本 0.7.1-qmk：** L0 全部按键、旋钮按下和旋转均由 VIA 优先覆盖；空键/透明键恢复对应 Codex 默认，不再限五处。Codex L0 全部 16 个方键逐键按住白光；Codex RGB/OLED 取消一小时空闲关闭，仅普通 VIA L1–L3 保留；USB 挂起全灭。普通 L1–L3、十秒 USB 身份协商及已有配置保留，0.7.0→0.7.1 不新增迁移。2026-11-04 用户确认“按下白光”通过（`db2cdf1` 同逻辑开发镜像）；正式 0.7.1 未刷入，普通层灯光、真实长时间无空闲关闭及 Flash 读回未验收。当前下载与命令见下方 0.7.1 小节，0.7.0/0.6.0 段为历史示例。详见 [执行规则](codex-via-keys.md)。
+**当前版本 0.7.2-qmk：** L0 全部按键、旋钮按下和旋转均由 VIA 优先覆盖；空键/透明键恢复对应 Codex 默认，不再限五处。Codex L0 全部 16 个方键逐键按住白光；Codex RGB/OLED 取消一小时空闲关闭，仅普通 VIA L1–L3 保留；USB 挂起全灭。普通 L1–L3 和十秒 USB 身份协商不变。0.7.2 EEPROM 兼容修复只接受 `KB` + schema 1 标记，只校验格式标记而非 payload CRC；0.7.1/更旧首次升级会恢复一次 VIA 默认（键位/encoder/宏/布局选项）并写新 marker，之后同 schema 跨编译日期/版本保留。不自动迁移旧页序/自定义位置，升级前必须先导出配置并保留回退镜像。2026-11-04 用户确认“按下白光”通过（`db2cdf1` 同逻辑开发镜像）；正式 0.7.2 未刷入，EEPROM 修复未做实机掉电/Flash 读回，普通层灯光、真实长时间无空闲关闭及光度测量未验收。当前下载与命令见下方 0.7.2 小节，0.7.1/0.7.0/0.6.0 段为历史示例。详见 [执行规则](codex-via-keys.md)。
 
 历史版本 `0.6.0-qmk`：Codex 在第一页 L0，普通层在 L1–L3；五处直接读取 VIA，取消固定长按退出。L0 配 MO(1) 按住临时普通 L1、松开返回；普通层 TO(0) 回 Codex。原配置及层动作一次迁移，先导出备份。本版以 [v0.6.0-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.6.0-qmk) 分发，已刷入同源 main 流水线 Artifact；版本应答为 0.6.0-qmk，当前 Codex L0；[完整说明](codex-via-keys.md)。**下方 0.4.9 下载与实机验收段为旧版本示例，不是当前源码的层序/退出方式。**
 
@@ -20,9 +20,22 @@
 - macOS 或 Windows；刷写需要 `dfu-util` 或 QMK Toolbox。
 - ChatGPT/Codex 桌面版（macOS 14+ / Windows 10+）。
 
-## 0.7.1 流水线固件刷写
+## 0.7.2 流水线固件刷写
 
-从 [v0.7.1-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.1-qmk) 下载五份流水线附件并检查 BUILD-INFO.json、SHA256SUMS。升级前导出并检查 L0 按键/按压/旋转；0.7.0→0.7.1 不新增迁移、不清空配置。Codex L0 新增逐键按住白光和取消一小时空闲关闭；普通 VIA L1–L3 的灯光/空闲策略不变。
+从 [v0.7.2-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.2-qmk) 下载五份流水线附件并检查 BUILD-INFO.json、SHA256SUMS。升级前必须导出 VIA 配置并保留官方回退镜像。0.7.2 将 VIA marker 改为固定 `KB` + schema 1；从 0.7.1/更旧首次升级会恢复一次 VIA 默认（键位/encoder/宏/布局选项），之后同 schema 跨编译日期/版本保留。不迁移旧页序/自定义位置；只校验格式标记，不是 payload CRC。
+
+断开 USB 拆开外壳，露出 PCB 内部 RESET 并做好绝缘；接回 USB，先执行等待命令，再短按内部 RESET 并松开：
+
+```bash
+dfu-util -w -a 2 -d 1EAF:0003 \
+  -D doio_kb16_rev2_codex_micro_v0.7.2-qmk.bin
+```
+
+仅允许 Maple alt 2 应用区 `0x08002000`；不要改 Bootloader、读保护或做全片擦除。下载期间不拔线；完成后核对重新枚举和 0.7.2-qmk 版本，不因复位阶段返回 74 就重复刷。异常恢复、断电拆机和来源/哈希检查继续遵守下方完整步骤，替换为本版附件。**本轮发布不自动刷机；正式 0.7.2 未实机刷入。白光行为验收来自 `db2cdf1` 同逻辑开发镜像；EEPROM 修复未做实机掉电或 Flash 读回；普通层灯光、真实长时间无空闲关闭及光度测量未验收。**
+
+## 历史：0.7.1 流水线固件刷写
+
+从 [v0.7.1-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.1-qmk) 下载五份流水线附件并检查 BUILD-INFO.json、SHA256SUMS。升级前导出并检查 L0 按键/按压/旋转；0.7.1 本身仍使用旧日期标记，升级到 0.7.2 时会按新规则恢复一次 VIA 默认。Codex L0 新增逐键按住白光和取消一小时空闲关闭；普通 VIA L1–L3 的灯光/空闲策略不变。
 
 断开 USB 拆开外壳，露出 PCB 内部 RESET 并做好绝缘；接回 USB，先执行等待命令，再短按内部 RESET 并松开：
 
@@ -82,7 +95,7 @@ export QMK_HOME=~/qmk_firmware
 qmk compile -kb doio/kb16/rev2 -km codex_micro_via_v1
 ```
 
-产物是 `doio_kb16_rev2_codex_micro_via_v1.bin`（当前约 51 KB）。刷前先导出 VIA 配置，核对当前产物 SHA-256；不要将地址兼容理解为任意升级都不重置配置。
+产物是 `doio_kb16_rev2_codex_micro_via_v1.bin`（当前约 51 KB）。刷前先导出 VIA 配置，核对当前产物 SHA-256；地址兼容不等于配置兼容，首次从旧格式升级到当前源码会恢复默认，之后同 schema 跨日期/版本保留。
 
 ### 2. 进入 Bootloader
 
@@ -138,14 +151,14 @@ USB 从 VIA 枚举到 Codex 的时间只是启动窗口的近似观测，不等�
 
 > 这些是宿主侧原生功能绑定，具体项目以当前 App 为准，不是 VIA 物理改键。本仓库只生成固件、不包含 Mapper；三个普通层执行 VIA 配置，0.6.0 在第一层 L0 开放指定五处，其余原生 Codex 控制固定。6 层/AppSense 不属于当前实现。
 
-## VIA 配置与当前 0.6.0 切层
+## VIA 配置与当前切层
 
 - 提前载入 VIA 定义，断电重插十秒内成功读键位即可锁定 VIA 身份直到断电。四页均保存；第一页 L0 仅五处执行，第二至第四页 L1–L3 普通动态执行。
 - 第一页左下角配置 `MO(1)`，Any 为 `0x5221`：Codex 按住临时普通 L1，同时可按该层的其他键，松开回 Codex。左上同样可配这种持续层动作，无固定长按。
 - 普通层用 `TO(0)`（Any `0x5200`）回 Codex；`TO(1/2/3)` 常驻普通层。标准 QMK 高层优先，向低层 MO 不是强制降层。
-- 五处全新默认无动作，请自行配置切层入口。普通层默认 B 按压 L1→L2→L3→L0；已有用户配置迁移保留。
-- 旧 L3→新 L0，旧 L0/L1/L2→新 L1/L2/L3，层动作目标同步变化，原 Codex MO(0) 变为 MO(1)；五处编辑/宏不再清空，地址不动。
-- 导入旧顺序备份前先转换页序及目标；迁移不是断电事务，升级时保持供电并备份，完整边界见 [改键文档](codex-via-keys.md)。
+- 五处全新默认无动作，请自行配置切层入口。普通层默认 B 按压 L1→L2→L3→L0；0.7.2 不自动迁移旧页序或自定义位置，首次从 0.7.1/更旧升级会恢复一次 VIA 默认。
+- `0.7.2-qmk` 的 `KB` + schema 1 标记在 VIA 配置初始化路径原样保留键位、三个旋钮、宏和布局选项；只校验格式标记而非 payload CRC。0.7.1/更旧首次升级先导出配置，之后同 schema 跨编译日期/版本保留。
+- 旧顺序备份不能直接作为当前布局导入；需要自行转换或重新配置。升 schema 仅在存储布局/编码不兼容改变时由维护者手动执行，完整边界见 [改键文档](codex-via-keys.md)。
 - 改完断电重插，关闭 VIA，让十秒窗口超时进入 Codex USB 身份默认 L0。切层不改 USB 身份，锁定 VIA 后仅切 L0 无法供 Codex 软件使用。
 - 新版实机核对清单（用户已整体反馈正常，不等同每项独立计量）：十秒窗口、MO(1) 及跨层释放、TO(0)、无固定长按、普通页 1/2/3、Codex Logo/任务/实际输出；当前不自动刷机。
 

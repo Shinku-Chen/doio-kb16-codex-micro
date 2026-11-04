@@ -1,5 +1,15 @@
 # 开发与构建
 
+## 2026-11-04：EEPROM 兼容策略修复（0.7.2-qmk）
+
+根因是 QMK VIA 的 `via_eeprom_is_valid()` 使用 `QMK_BUILDDATE` 派生三字节 magic：跨日期编译后，旧键位、encoder map 和宏虽仍在 EEPROM，却会被判为无效并由 `eeconfig_init_via()` 恢复默认。项目 keymap 另有 `KB16`/层序/自定义位置 stamp 与迁移，形成第二套校验，并在 `keyboard_post_init_user()` 中晚于 `via_init()` 执行，不能阻止 VIA 先清空配置。
+
+新规则只接受固定 `KB` + schema 1 的 VIA 三字节 magic，不依赖编译日期或固件版本。三字节只作格式标记校验，不是 payload CRC，不能保证检测到配置内容任意损坏；本次不追加 CRC 或新格式。当前 schema 在 VIA 配置初始化路径原样保留键位、三个 encoder、宏和布局选项并只读不写；不断言固件其他路径永不写 EEPROM。0.7.1/更旧的日期 magic、旧 schema、未知值、全 FF、全 00 都在首次启动恢复一次 VIA 默认并写入当前 marker，第二次启动不再重置；恢复范围是 VIA 键位/encoder/宏/布局选项，RGB 等 QMK 全局设置没有在此路径 reset，不能宣称所有键盘设置都会初始化。不迁移旧页序、自定义位置或旧层动作；首次升级前必须导出 VIA 配置。只有存储布局或编码不兼容改变时才手动升 schema。
+
+实现只改 `firmware/qmk-core-patches/quantum/via.c` 的 marker/有效性判断，移除 `version.h` 依赖；删除 `firmware/keymaps/codex_micro_via_v1/keymap.c` 的旧 stamp reset、层序/自定义位置迁移及 `poc_config.h` 的旧 Codex 层常量。保留 `EECONFIG_USER_DATA_SIZE=8`、`POC_EEPROM_RESERVED_LAYER_SLOTS=5` 和键位/encoder/宏现有地址容量。原有 `VIA_EEPROM_ALLOW_RESET` 权限设置不变（仍保持未定义），未新增远程清空能力。如果 QMK 全局有效标记本身也无效（例如首次使用的整片空白存储），原有 QMK 初始化仍会恢复全局设置；这里的“不额外重置 RGB”仅指 VIA 格式校验路径，不绕过 QMK 自身初始化。
+
+验证新增 `tools/via_init_test.c`，由 `run_tests.py` 从生产 `via.c` 提取 `via_eeprom_is_valid`、`via_eeprom_set_valid`、`via_init`、`eeconfig_init_via` 及 layout 读取/写入函数，配合真实 marker 流程的 nvm/dynamic-keymap 桩执行；同一测试用两个 `QMK_BUILDDATE` 分别编译，证明跨日期不受影响。覆盖当前 marker 在 VIA 配置初始化路径零写并保留自定义键位/三个 encoder/宏/布局选项、五类旧/空白/未知 marker 首次恢复 VIA 默认并写 marker、二次启动稳定、默认初始化 helper 重建、用户区大小与保留槽位不变，并断言 keymap 源码不再包含旧 stamp/迁移路径。完整固件回归 92 组、打包测试 13 项；0.7.2 本地 BIN 50,388 字节，SHA-256 `48abd6041c4d529d6cb5f429cc636f466b1d0326f14879fd2eb9e61f28fd3bf1`，只作开发验证，不上传不刷入。宿主测试不等于实机 EEPROM 掉电或刷写验收；0.7.2 发布候选仅版本 metadata、notes 和文档，未刷机、未 commit/push，正式附件由 Actions 生成。
+
 ## 2026-11-04：功能分支在 Windows 刷写
 
 按用户授权，由 Orca Worker 在插着键盘的 Shinku-PC（Windows）完成刷写，未在 Mac 操作 USB。源码为功能分支 `feat/codex-lighting-and-idle` 的 `db2cdf123bb84c7d9f8eafddc8ef484fab745d28`，使用 [GitHub Actions 41818461383](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/runs/41818461383) 的流水线产物，不使用本地编译镜像；未合入 main、创建标签或发布 Release。

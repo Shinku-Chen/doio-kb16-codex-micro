@@ -438,49 +438,6 @@ static void reset_saved_layout(void) {
     }
 }
 
-static void test_four_layer_migration(void) {
-    const uint16_t legacy[] = {TO(4), MO(4), DF(4), PDF(4), TG(4), OSL(4), TT(4), LT(4, KC_A), LM(4, 2)};
-    const uint16_t migrated[] = {TO(3), MO(3), DF(3), PDF(3), TG(3), OSL(3), TT(3), LT(3, KC_A), LM(3, 2)};
-    reset_saved_layout();
-    uint16_t expected_keys[4][4][5];
-    uint16_t expected_encoders[4][3][2];
-    for (size_t index = 0; index < sizeof(legacy) / sizeof(legacy[0]); ++index) {
-        saved_keymap[0][index / 5][index % 5] = legacy[index];
-    }
-    saved_keymap[3][0][0] = TO(4);
-    saved_encoders[0][1][1] = TO(4);
-    saved_encoders[2][2][0] = LT(4, KC_B);
-    saved_encoders[3][0][0] = MO(4);
-    memcpy(expected_keys, saved_keymap, sizeof(expected_keys));
-    memcpy(expected_encoders, saved_encoders, sizeof(expected_encoders));
-    for (size_t index = 0; index < sizeof(migrated) / sizeof(migrated[0]); ++index) {
-        expected_keys[0][index / 5][index % 5] = migrated[index];
-    }
-    expected_encoders[0][1][1] = TO(3);
-    expected_encoders[2][2][0] = LT(3, KC_B);
-    poc_migrate_four_layer_layout();
-    assert(memcmp(expected_keys, saved_keymap, sizeof(expected_keys)) == 0);
-    assert(memcmp(expected_encoders, saved_encoders, sizeof(expected_encoders)) == 0);
-    assert(keymap_writes == 9 && encoder_writes == 2 && user_data_writes == 1);
-    assert(poc_remap_legacy_codex_keycode(KC_A) == KC_A);
-    assert(poc_remap_legacy_codex_keycode(LT(2, KC_A)) == LT(2, KC_A));
-    assert(poc_remap_legacy_codex_keycode(LM(1, 2)) == LM(1, 2));
-    assert(poc_remap_legacy_codex_keycode(TO(0)) == TO(0));
-    for (size_t offset = 0; offset < sizeof(uint32_t); ++offset) {
-        assert(user_data[offset] == 0xA5);
-    }
-    uint32_t stamp;
-    memcpy(&stamp, user_data + sizeof(uint32_t), sizeof(stamp));
-    assert(stamp == POC_FOUR_LAYER_STAMP);
-    saved_keymap[0][0][0] = TO(4);
-    saved_encoders[0][1][1] = TO(4);
-    poc_migrate_four_layer_layout();
-    assert(saved_keymap[0][0][0] == TO(4) && saved_encoders[0][1][1] == TO(4));
-    assert(keymap_writes == 9 && encoder_writes == 2 && user_data_writes == 1);
-    use_saved_keymap = false;
-    puts("PASS: legacy layer-4 actions migrate to layer 3 once; page 3 and unrelated keys/encoders remain intact");
-}
-
 static void test_codex_via_overrides(void) {
     reset_saved_layout();
     mode_codex = false;
@@ -545,36 +502,6 @@ static void test_codex_native_fallback(void) {
     assert(keymap_key_to_keycode(POC_CODEX_LAYER, (keypos_t){KEYLOC_ENCODER_CCW, NUM_ENCODERS}) == KC_NO);
     use_saved_keymap = false;
     puts("PASS: Codex empty/transparent/internal defaults restore each native key and both encoder directions without EEPROM writes; ordinary NO/TRNS semantics and invalid bounds remain unchanged");
-}
-
-static void test_custom_migration(void) {
-    reset_saved_layout();
-    uint16_t before_keys[4][4][5];
-    uint16_t before_encoders[4][3][2];
-    memcpy(before_keys, saved_keymap, sizeof(before_keys));
-    memcpy(before_encoders, saved_encoders, sizeof(before_encoders));
-    uint32_t stamp = POC_FOUR_LAYER_STAMP;
-    memcpy(user_data + sizeof(uint32_t), &stamp, sizeof(stamp));
-    poc_migrate_codex_custom_keys();
-    assert(keymap_writes == 5 && encoder_writes == 0 && user_data_writes == 1);
-    for (uint8_t layer = 0; layer < 4; ++layer) {
-        for (uint8_t row = 0; row < 4; ++row) {
-            for (uint8_t column = 0; column < 5; ++column) {
-                bool reset = layer == 3 && poc_codex_custom_position((keypos_t){row, column});
-                assert(saved_keymap[layer][row][column] == (reset ? KC_NO : before_keys[layer][row][column]));
-            }
-        }
-    }
-    assert(memcmp(before_encoders, saved_encoders, sizeof(before_encoders)) == 0);
-    saved_keymap[3][0][0] = KC_C;
-    saved_keymap[0][0][0] = TO(4);
-    poc_migrate_four_layer_layout();
-    poc_migrate_codex_custom_keys();
-    assert(saved_keymap[3][0][0] == KC_C && saved_keymap[0][0][0] == TO(4));
-    assert(keymap_writes == 5 && user_data_writes == 1);
-    assert(user_data[0] == 0xA5);
-    use_saved_keymap = false;
-    puts("PASS: custom-key migration clears only the five newly active positions once, retaining normal pages, native storage, encoders and the existing EEPROM layout");
 }
 
 static void test_custom_tap_and_hold(void) {
@@ -872,80 +799,6 @@ static void test_shared_rgb_power(void) {
     puts("PASS: shared power gates host backgrounds, VIA traffic renews activity, and held physical keys override host all-off without losing host colors");
 }
 
-static void test_codex_l0_migration(void) {
-    reset_saved_layout();
-    uint32_t stamp = POC_CUSTOM_KEYS_STAMP;
-    memcpy(user_data + sizeof(uint32_t), &stamp, sizeof(stamp));
-    saved_keymap[3][0][0] = KC_ESC;
-    saved_keymap[3][3][0] = MO(0);
-    saved_encoders[2][1][1] = TO(3);
-    uint16_t before_keys[4][4][5];
-    uint16_t before_encoders[4][3][2];
-    memcpy(before_keys, saved_keymap, sizeof(before_keys));
-    memcpy(before_encoders, saved_encoders, sizeof(before_encoders));
-    poc_migrate_four_layer_layout();
-    poc_migrate_codex_custom_keys();
-    assert(keymap_writes == 0 && encoder_writes == 0);
-    poc_migrate_codex_l0_layout();
-    for (uint8_t layer = 0; layer < 4; ++layer) {
-        uint8_t source = (layer + 3) % 4;
-        for (uint8_t row = 0; row < 4; ++row) {
-            for (uint8_t column = 0; column < 5; ++column) {
-                assert(saved_keymap[layer][row][column] == poc_remap_shifted_layer_keycode(before_keys[source][row][column]));
-            }
-        }
-        for (uint8_t encoder = 0; encoder < 3; ++encoder) {
-            for (uint8_t direction = 0; direction < 2; ++direction) {
-                assert(saved_encoders[layer][encoder][direction] == poc_remap_shifted_layer_keycode(before_encoders[source][encoder][direction]));
-            }
-        }
-    }
-    assert(saved_keymap[0][0][0] == KC_ESC && saved_keymap[0][3][0] == MO(1));
-    assert(saved_encoders[3][1][1] == TO(0));
-    assert(keymap_writes == 80 && encoder_writes == 24 && user_data_writes == 1);
-    assert(user_data[0] == 0xA5);
-    saved_keymap[0][3][0] = MO(2);
-    poc_migrate_four_layer_layout();
-    poc_migrate_codex_custom_keys();
-    poc_migrate_codex_l0_layout();
-    assert(saved_keymap[0][3][0] == MO(2) && keymap_writes == 80 && encoder_writes == 24 && user_data_writes == 1);
-    for (uint8_t layer = 0; layer < 4; ++layer) {
-        uint8_t target = (layer + 1) % 4;
-        const uint16_t before[] = {TO(layer), MO(layer), DF(layer), PDF(layer), TG(layer), OSL(layer), TT(layer), LT(layer, KC_Z), LM(layer, MOD_LSFT)};
-        const uint16_t after[] = {TO(target), MO(target), DF(target), PDF(target), TG(target), OSL(target), TT(target), LT(target, KC_Z), LM(target, MOD_LSFT)};
-        for (size_t index = 0; index < sizeof(before) / sizeof(before[0]); ++index) assert(poc_remap_shifted_layer_keycode(before[index]) == after[index]);
-    }
-    const uint16_t unchanged[] = {KC_A, KC_TRNS, KC_LCTL, QK_MACRO_0, TO(4), MO(9), LT(5, KC_Z), LM(4, MOD_LALT)};
-    for (size_t index = 0; index < sizeof(unchanged) / sizeof(unchanged[0]); ++index) assert(poc_remap_shifted_layer_keycode(unchanged[index]) == unchanged[index]);
-    use_saved_keymap = false;
-    puts("PASS: old pages rotate 3->0 and 0/1/2->1/2/3 once, preserving five custom keys and encoders; all supported layer targets remap with tap keys/modifiers intact");
-}
-
-static void test_fresh_layout_and_legacy_chain(void) {
-    reset_saved_layout();
-    user_data_valid = false;
-    eeprom_initializations = 0;
-    poc_check_layout_stamp();
-    assert(eeprom_initializations == 1 && user_data_writes == 2);
-    poc_migrate_four_layer_layout();
-    poc_migrate_codex_custom_keys();
-    poc_migrate_codex_l0_layout();
-    assert(keymap_writes == 0 && encoder_writes == 0 && user_data_writes == 2);
-    assert(saved_keymap[0][0][0] == KC_ESC && saved_keymap[1][0][0] == KC_A && saved_keymap[2][0][0] == KC_B && saved_keymap[3][0][0] == KC_C);
-    poc_check_layout_stamp();
-    assert(eeprom_initializations == 1 && user_data_writes == 2);
-    reset_saved_layout();
-    saved_keymap[0][1][0] = TO(4);
-    saved_encoders[2][1][0] = MO(4);
-    poc_migrate_four_layer_layout();
-    poc_migrate_codex_custom_keys();
-    poc_migrate_codex_l0_layout();
-    assert(saved_keymap[1][1][0] == TO(0) && saved_encoders[3][1][0] == MO(0));
-    assert(saved_keymap[0][0][0] == KC_NO && saved_keymap[0][3][0] == KC_NO);
-    use_saved_keymap = false;
-    puts("PASS: fresh defaults carry the L0 stamp and never rotate or clear; five-layer upgrades chain through old L3 into new L0");
-}
-
 static void test_native_momentary_layers(void) {
     reset_saved_layout();
     for (uint8_t layer = 0; layer < 4; ++layer) {
@@ -1008,10 +861,6 @@ static void test_native_momentary_layers(void) {
 
 static void test_boot_identity_layers(void) {
     reset_saved_layout();
-    uint32_t stamp = POC_LAYER_STAMP;
-    memcpy(user_data, &stamp, sizeof(stamp));
-    stamp = POC_CODEX_L0_STAMP;
-    memcpy(user_data + sizeof(uint32_t), &stamp, sizeof(stamp));
     layer_state = 1UL << 2;
     default_layer_state = 1UL << 3;
     mode_codex = true;
@@ -1095,15 +944,11 @@ int main(void) {
     test_all_physical_key_feedback();
     test_physical_feedback_priority();
     test_physical_feedback_gates_and_ranges();
-    test_four_layer_migration();
     test_codex_via_overrides();
     test_codex_native_fallback();
-    test_custom_migration();
     test_custom_tap_and_hold();
     test_custom_key_safety();
     test_bottom_left_is_direct();
-    test_codex_l0_migration();
-    test_fresh_layout_and_legacy_chain();
     test_native_momentary_layers();
     test_native_position_overrides();
     test_boot_identity_layers();

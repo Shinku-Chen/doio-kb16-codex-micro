@@ -39,11 +39,6 @@ enum poc_keycodes {
     LAYER_CYCLE,
 };
 
-#define POC_LAYER_STAMP 0x4B423136UL // "KB16"
-#define POC_FOUR_LAYER_STAMP 0x344C4333UL
-#define POC_CUSTOM_KEYS_STAMP 0x354B4333UL
-#define POC_CODEX_L0_STAMP 0x304C4334UL
-
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_VIA1] = LAYOUT(
         KC_ESC, G(KC_W), LSG(KC_A), G(KC_BSPC), TO(1),
@@ -97,11 +92,6 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
 #endif
 
 #define POC_LAYER_COUNT POC_VIA_LAYER_COUNT
-
-static bool poc_codex_custom_position(keypos_t key) {
-    return (key.row == 0 && (key.col == 0 || key.col == 3 || key.col == 4)) ||
-           (key.row == 1 && key.col == 4) || (key.row == 3 && key.col == 0);
-}
 
 static uint16_t poc_codex_resolve_keycode(uint16_t keycode, uint16_t native_keycode) {
     if (keycode == KC_NO || keycode == KC_TRNS || (keycode >= AG00 && keycode <= LAYER_CYCLE)) {
@@ -223,148 +213,11 @@ void keyboard_pre_init_user(void) {
     poc_mode_init();
 }
 
-static void poc_check_layout_stamp(void) {
-    uint32_t stamp = 0;
-    if (eeconfig_is_user_datablock_valid()) {
-        eeconfig_read_user_datablock(&stamp, 0, sizeof(stamp));
-    }
-    if (stamp == POC_LAYER_STAMP) {
-        return;
-    }
-
-    // Another firmware may have left a valid looking EEPROM behind. Wipe it so
-    // the VIA keymap starts from the defaults in this file.
-    eeconfig_init();
-    uint32_t fresh = POC_LAYER_STAMP;
-    eeconfig_update_user_datablock(&fresh, 0, sizeof(fresh));
-    fresh = POC_CODEX_L0_STAMP;
-    eeconfig_update_user_datablock(&fresh, sizeof(uint32_t), sizeof(fresh));
-}
-
-static uint16_t poc_remap_legacy_codex_keycode(uint16_t keycode) {
-    if (IS_QK_LAYER_TAP(keycode) && QK_LAYER_TAP_GET_LAYER(keycode) == 4) {
-        return (keycode & 0xF0FFU) | (POC_LEGACY_CODEX_LAYER << 8);
-    }
-    if (IS_QK_LAYER_MOD(keycode) && QK_LAYER_MOD_GET_LAYER(keycode) == 4) {
-        return (keycode & 0xFE1FU) | (POC_LEGACY_CODEX_LAYER << 5);
-    }
-    bool layer_action = IS_QK_TO(keycode) || IS_QK_MOMENTARY(keycode) || IS_QK_DEF_LAYER(keycode) || IS_QK_PERSISTENT_DEF_LAYER(keycode) || IS_QK_TOGGLE_LAYER(keycode) || IS_QK_ONE_SHOT_LAYER(keycode) || IS_QK_LAYER_TAP_TOGGLE(keycode);
-    if (layer_action && (keycode & 0x1FU) == 4) {
-        return (keycode & 0xFFE0U) | POC_LEGACY_CODEX_LAYER;
-    }
-    return keycode;
-}
-
-static void poc_migrate_four_layer_layout(void) {
-    uint32_t stamp = 0;
-    eeconfig_read_user_datablock(&stamp, sizeof(uint32_t), sizeof(stamp));
-    if (stamp == POC_FOUR_LAYER_STAMP || stamp == POC_CUSTOM_KEYS_STAMP || stamp == POC_CODEX_L0_STAMP) {
-        return;
-    }
-
-    for (uint8_t layer = 0; layer < POC_LEGACY_CODEX_LAYER; ++layer) {
-        for (uint8_t row = 0; row < MATRIX_ROWS; ++row) {
-            for (uint8_t col = 0; col < MATRIX_COLS; ++col) {
-                uint16_t keycode = dynamic_keymap_get_keycode(layer, row, col);
-                uint16_t migrated = poc_remap_legacy_codex_keycode(keycode);
-                if (migrated != keycode) {
-                    dynamic_keymap_set_keycode(layer, row, col, migrated);
-                }
-            }
-        }
-#ifdef ENCODER_MAP_ENABLE
-        for (uint8_t encoder = 0; encoder < NUM_ENCODERS; ++encoder) {
-            for (uint8_t direction = 0; direction < NUM_DIRECTIONS; ++direction) {
-                bool clockwise = direction != 0;
-                uint16_t keycode = dynamic_keymap_get_encoder(layer, encoder, clockwise);
-                uint16_t migrated = poc_remap_legacy_codex_keycode(keycode);
-                if (migrated != keycode) {
-                    dynamic_keymap_set_encoder(layer, encoder, clockwise, migrated);
-                }
-            }
-        }
-#endif
-    }
-    stamp = POC_FOUR_LAYER_STAMP;
-    eeconfig_update_user_datablock(&stamp, sizeof(uint32_t), sizeof(stamp));
-}
-
-static void poc_migrate_codex_custom_keys(void) {
-    uint32_t stamp = 0;
-    eeconfig_read_user_datablock(&stamp, sizeof(uint32_t), sizeof(stamp));
-    if (stamp == POC_CUSTOM_KEYS_STAMP || stamp == POC_CODEX_L0_STAMP) {
-        return;
-    }
-    for (uint8_t row = 0; row < MATRIX_ROWS; ++row) {
-        for (uint8_t column = 0; column < MATRIX_COLS; ++column) {
-            if (poc_codex_custom_position((keypos_t){.row = row, .col = column})) {
-                dynamic_keymap_set_keycode(POC_LEGACY_CODEX_LAYER, row, column, KC_NO);
-            }
-        }
-    }
-    stamp = POC_CUSTOM_KEYS_STAMP;
-    eeconfig_update_user_datablock(&stamp, sizeof(uint32_t), sizeof(stamp));
-}
-
-static uint16_t poc_remap_shifted_layer_keycode(uint16_t keycode) {
-    if (IS_QK_LAYER_TAP(keycode)) {
-        uint8_t layer = QK_LAYER_TAP_GET_LAYER(keycode);
-        return layer < POC_VIA_LAYER_COUNT ? (keycode & 0xF0FFU) | (((layer + 1) % POC_VIA_LAYER_COUNT) << 8) : keycode;
-    }
-    if (IS_QK_LAYER_MOD(keycode)) {
-        uint8_t layer = QK_LAYER_MOD_GET_LAYER(keycode);
-        return layer < POC_VIA_LAYER_COUNT ? (keycode & 0xFE1FU) | (((layer + 1) % POC_VIA_LAYER_COUNT) << 5) : keycode;
-    }
-    bool layer_action = IS_QK_TO(keycode) || IS_QK_MOMENTARY(keycode) || IS_QK_DEF_LAYER(keycode) || IS_QK_PERSISTENT_DEF_LAYER(keycode) || IS_QK_TOGGLE_LAYER(keycode) || IS_QK_ONE_SHOT_LAYER(keycode) || IS_QK_LAYER_TAP_TOGGLE(keycode);
-    uint8_t layer = keycode & 0x1FU;
-    return layer_action && layer < POC_VIA_LAYER_COUNT ? (keycode & 0xFFE0U) | ((layer + 1) % POC_VIA_LAYER_COUNT) : keycode;
-}
-
-static void poc_migrate_codex_l0_layout(void) {
-    uint32_t stamp = 0;
-    eeconfig_read_user_datablock(&stamp, sizeof(uint32_t), sizeof(stamp));
-    if (stamp == POC_CODEX_L0_STAMP) {
-        return;
-    }
-    for (uint8_t row = 0; row < MATRIX_ROWS; ++row) {
-        for (uint8_t column = 0; column < MATRIX_COLS; ++column) {
-            uint16_t keycodes[POC_VIA_LAYER_COUNT];
-            for (uint8_t layer = 0; layer < POC_VIA_LAYER_COUNT; ++layer) {
-                keycodes[layer] = dynamic_keymap_get_keycode(layer, row, column);
-            }
-            for (uint8_t layer = 0; layer < POC_VIA_LAYER_COUNT; ++layer) {
-                uint8_t source = (layer + POC_VIA_LAYER_COUNT - 1) % POC_VIA_LAYER_COUNT;
-                dynamic_keymap_set_keycode(layer, row, column, poc_remap_shifted_layer_keycode(keycodes[source]));
-            }
-        }
-    }
-#ifdef ENCODER_MAP_ENABLE
-    for (uint8_t encoder = 0; encoder < NUM_ENCODERS; ++encoder) {
-        for (uint8_t direction = 0; direction < NUM_DIRECTIONS; ++direction) {
-            uint16_t keycodes[POC_VIA_LAYER_COUNT];
-            for (uint8_t layer = 0; layer < POC_VIA_LAYER_COUNT; ++layer) {
-                keycodes[layer] = dynamic_keymap_get_encoder(layer, encoder, direction != 0);
-            }
-            for (uint8_t layer = 0; layer < POC_VIA_LAYER_COUNT; ++layer) {
-                uint8_t source = (layer + POC_VIA_LAYER_COUNT - 1) % POC_VIA_LAYER_COUNT;
-                dynamic_keymap_set_encoder(layer, encoder, direction != 0, poc_remap_shifted_layer_keycode(keycodes[source]));
-            }
-        }
-    }
-#endif
-    stamp = POC_CODEX_L0_STAMP;
-    eeconfig_update_user_datablock(&stamp, sizeof(uint32_t), sizeof(stamp));
-}
-
 #ifdef RGB_MATRIX_ENABLE
 static void codex_rgb_init(void);
 #endif
 
 void keyboard_post_init_user(void) {
-    poc_check_layout_stamp();
-    poc_migrate_four_layer_layout();
-    poc_migrate_codex_custom_keys();
-    poc_migrate_codex_l0_layout();
     codex_micro_init();
     oled_controller_init();
 #ifdef RGB_MATRIX_ENABLE

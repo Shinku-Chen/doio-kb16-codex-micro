@@ -2,7 +2,7 @@
 
 QMK + VIA 双模式 keymap，目标硬件 DOIO KB16-01 Rev2（STM32F103xB，128 KB Flash）。
 
-当前版本 `0.7.1-qmk`：Codex L0 的全部按键、三个旋钮按下及六个旋转方向均优先读取 VIA；`KC_NO`/`KC_TRNS` 回退该位置的静态 Codex 功能，原本无功能的位置仍无动作。Codex L0 全部 16 个方键逐键按住白光，RGB/OLED 取消一小时空闲关闭；普通 VIA L1–L3 保留一小时计时。保留已有键位/宏/存储标记，0.7.0→0.7.1 不新增迁移；刷前备份检查。2026-11-04 用户确认“按下白光”通过（`db2cdf1` 同逻辑开发镜像）；正式 0.7.1 未刷入，普通层灯光、真实长时间无空闲关闭及 Flash 读回未验收。详见仓库 `docs/codex-via-keys.md`。
+当前版本 `0.7.2-qmk`：Codex L0 的全部按键、三个旋钮按下及六个旋转方向均优先读取 VIA；`KC_NO`/`KC_TRNS` 回退该位置的静态 Codex 功能，原本无功能的位置仍无动作。0.7.2 加入 EEPROM 兼容修复：固定 `KB` + schema 1 marker，只校验格式标记而非 payload CRC；当前 schema 保留键位/三个 encoder/宏/布局选项，0.7.1/更旧首次升级恢复一次 VIA 默认并写 marker，之后同 schema 跨日期/版本保留，不自动迁移旧页序或自定义位置。Codex L0 全部 16 个方键逐键按住白光，RGB/OLED 取消一小时空闲关闭；普通 VIA L1–L3 保留一小时计时。2026-11-04 用户确认“按下白光”通过（`db2cdf1` 同逻辑开发镜像）；正式 0.7.2 未刷入，普通层灯光、真实长时间无空闲关闭及 Flash 读回未验收。详见仓库 `docs/codex-via-keys.md`。
 
 已发布/实机基线 `0.4.9-qmk`：OLED 不再跟随 Codex RGB 全灭关屏，无任务灯分配时保留 Logo，入层从首个可见帧展示完整约 1 秒。保留一小时静默/USB 挂起息屏、有效心跳及重复报文续时；RGB、四层、EEPROM、10 秒启动和当时左下角一秒退出不变。63 项固件离线检查通过，流水线版本已刷入，版本/切层及用户入层 Logo 目视确认通过；一小时息屏/按键唤醒按用户选择未实测。完整双语指南及展示见仓库根 README。
 
@@ -44,7 +44,7 @@ VIA5  ACT10 ACT11 ACT12   (VIA5 直接执行，可持续按住)
 
 | 文件 | 说明 |
 |---|---|
-| `keymap.c` | 四层静态/动态路由、AG/ACT/JOY/ENC、层动作迁移、EEPROM 迁移 |
+| `keymap.c` | 四层静态/动态路由、AG/ACT/JOY/ENC |
 | `codex_micro_protocol.c/.h` | Codex Channel 2 JSON-RPC（来自上游 v1.3.5，去掉 kb16_config/Channel 3） |
 | `poc_mode.c` | 10 秒窗口、BKP 标志、模式复位 |
 | `poc_usb.c` | 描述符选择与 raw HID 长度（core patch 的强符号） |
@@ -56,13 +56,13 @@ VIA5  ACT10 ACT11 ACT12   (VIA5 直接执行，可持续按住)
 ## 默认与升级
 
 - 默认 Codex USB 身份进入 L0，VIA 等待/锁定进入普通 L1；四页可见，普通透明键只继承 L1。
-- 原旧 L3→新 L0，旧 L0/L1/L2→新 L1/L2/L3，所有支持的层动作目标一起转换；宏/地址不变。新默认带新标记、已有五处不清空，详见迁移文档。请自行配置返回键。
+- `0.7.2-qmk` 只接受固定 `KB` + schema 1 的 VIA marker；当前 schema 在 VIA 配置初始化路径原样保留键位、三个 encoder、宏和布局选项，跨编译日期/版本保留。0.7.1/更旧的日期 marker、旧 schema、未知、全 FF、全 00 首次启动恢复一次 VIA 默认并写新 marker，第二次不再重置；不迁移旧页序/自定义位置，只校验格式标记而非 payload CRC。首次升级前导出配置，详见 `docs/codex-via-keys.md`。
 
 ## 首次上电
 
 `POC_OLED_INPUT` 由当前 keymap 启用，ChibiOS 报告成功入队后只更新 RAM 文本，绘制在 OLED task；其他 keymap 不启用此观察。完整显示语义与测试见 `docs/oled.md`。
 
-固件会在 QMK 用户 EEPROM 里写一个 `KB16` 版本戳；发现戳不匹配（例如刚从别的固件刷过来）就 `eeconfig_init()` 重建动态键位，避免继承旧的 EEPROM 数据。
+固件在 QMK 用户 EEPROM 后保留 VIA 三字节 marker：当前为 `KB` + schema 1。marker 不匹配（含 0.7.1/更旧日期 marker、旧 schema、空白/未知）时由 `via_init()` 恢复一次 VIA 默认并写入当前 marker；当前 schema 启动只读，键位、encoder、宏和布局选项不会被改写。
 
 ## 构建
 
