@@ -2,6 +2,7 @@
 
 ## 0.7.2-qmk — 2026-11-04
 
+- 正式标签流水线 `41839735013` 已生成并发布五份附件，Mac/PC 官方附件校验通过；Windows Maple alt 2 应用主体 50,372 字节一次写入成功，正常断电重插后 `303A:8360` 重新枚举，版本与状态 RPC 均确认 `0.7.2-qmk`，layer_index 1 对应 Codex L0。刷前备份探测存在一次非预期 encoder 写入：L0 编码器 0 的逆时针项变为 0，原值未知，备份该项不能代表原值；已披露并记录在 `docs/development.md`，未自动导入或重刷。配置跨日期保留、掉电中断、Flash 读回及本版实体白光/灯效尚未验收。
 - 将 `CODEX_MICRO_VERSION` 更新为 `0.7.2-qmk`，新增 `docs/releases/v0.7.2-qmk.md`，同步当前版 README、使用/需求/开发/灯光等入口文档和布局图版本标签；0.7.2 相对 0.7.1 有 VIA 配置兼容行为修复，当前发布准备相对已验证的 EEPROM 修复源码只改版本 metadata、notes 和文档，不改运行逻辑。正式附件仅由 `v0.7.2-qmk` 标签的 GitHub Actions 生成，不上传本地镜像、不刷机。
 
 - EEPROM 兼容改为固定 `KB` + schema 1 的 VIA 三字节标记，不再用 `QMK_BUILDDATE` 或固件版本判断有效性；只校验格式标记，不检测 payload 损坏。当前 schema 在 VIA 配置初始化路径原样保留自定义键位、三个 encoder、宏和布局选项并零写，跨编译日期/固件版本保留；不宣称整个固件运行永不写 EEPROM。0.7.1/更旧的日期标记、旧 schema、未知值、全 FF、全 00 均恢复 VIA 默认并只写当前标记一次，不自动迁移旧页序或自定义位置，也不初始化 RGB 等 QMK 全局设置。保留 `EECONFIG_USER_DATA_SIZE=8`、`POC_EEPROM_RESERVED_LAYER_SLOTS=5` 及键位/编码器/宏地址容量；仅在布局或编码不兼容改变时手动升 schema。

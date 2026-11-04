@@ -12,14 +12,14 @@
 
 > **0.7.2 EEPROM 兼容修复（升级前必读）**：0.7.2 修复跨编译日期刷机导致 VIA 配置被恢复默认的问题。VIA 只接受固定 `KB` + schema 1 三字节 marker，只校验格式标记，不是 payload CRC，不保证检测配置内容任意损坏。**从 0.7.1/更旧固件首次升级会恢复一次 VIA 默认（键位/encoder/宏/布局选项）并写新 marker；请先导出 VIA 配置并保留回退镜像。** 之后同 schema 跨编译日期/固件版本保留这些配置；旧日期 marker、旧 schema、空白/未知 EEPROM 都恢复 VIA 默认，不迁移旧页序/自定义位置，也不额外重置 RGB 等 QMK 全局设置（QMK 自身全局标记失效时仍按原逻辑初始化）。存储地址和 `VIA_EEPROM_ALLOW_RESET` 远程清空权限均不变（后者仍未启用）。
 
-> **验收状态**：2026-11-04 用户已确认按压白光功能，基于 `db2cdf1` 同逻辑流水线开发镜像（版本字符串仍为 `0.7.0-qmk`）。正式 `0.7.2-qmk` 尚未刷入；0.7.2 的 EEPROM 修复为宿主/流水线验证，未做实机 EEPROM 掉电或 Flash 读回。普通 VIA 层灯光、真实长时间空闲和光度测量仍未验收。见 [刷写记录](docs/development.md#2026-11-04功能分支在-windows-刷写)。
+> **验收状态**：2026-11-04 用户已确认按压白光功能，基于 `db2cdf1` 同逻辑流水线开发镜像（版本字符串仍为 `0.7.0-qmk`）。正式 `0.7.2-qmk` 已刷入，并通过 USB/RPC 确认运行在 Codex L0；配置跨日期保留、实机 EEPROM 掉电中断及 Flash 读回尚未验证。普通 VIA 层灯光、真实长时间空闲和光度测量仍未验收。见 [刷写记录](docs/development.md)。
 
 切层动作由 VIA 自行配置：`MO(1)` 按住进入普通 L1、松开返回，`TT(1)` 兼顾按住与连续点按锁层，`TO(0)` 返回 Codex。具体行为见下方切层说明。
 
 - **[v0.7.2-qmk Release](https://github.com/Shinku-Chen/doio-kb16-codex-micro/releases/tag/v0.7.2-qmk)**：固件 `.bin` / `.hex`、VIA 定义、`BUILD-INFO.json` 和 `SHA256SUMS`，正式附件仅由该标签的 GitHub Actions 生成。
 - Git 仓库只保存源码、定义和文档；编译产物只放 Release。升级前导出 VIA 配置并检查 L0 按键及旋钮映射；已保存的普通映射会覆盖该位置的 Codex 功能。导入备份前检查页序和层动作目标。
 - **正式固件由 [GitHub Actions](https://github.com/Shinku-Chen/doio-kb16-codex-micro/actions/workflows/firmware.yml) 从标签源码生成和发布，不使用本机编译附件。** `BUILD-INFO.json` 记录源码提交、QMK/编译器版本、流水线链接及资产摘要，最终校验和见 `SHA256SUMS`。
-- `0.7.2-qmk` 保留 0.7.1 的逐键白光优先和 Codex 无空闲超时，并加入上述 EEPROM 兼容修复；相对已验证的 EEPROM 修复源码，本次发布准备只改版本 metadata/文档，不改变运行逻辑。正式 `0.7.2-qmk` 尚未刷入；普通层灯光/一小时休眠、Codex 长时间保持及 Flash 读回仍有验收边界，详见 [开发与验证](docs/development.md)。
+- `0.7.2-qmk` 保留 0.7.1 的逐键白光优先和 Codex 无空闲超时，并加入上述 EEPROM 兼容修复；相对已验证的 EEPROM 修复源码，本次发布准备只改版本 metadata/文档，不改变运行逻辑。正式 `0.7.2-qmk` 已刷入，并通过 USB/RPC 确认运行在 Codex L0；普通层灯光/一小时休眠、Codex 长时间保持及 Flash 读回仍有验收边界，详见 [开发与验证](docs/development.md)。
 
 ## 刷机：拆机按内部 RESET
 

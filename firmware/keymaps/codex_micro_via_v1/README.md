@@ -2,7 +2,7 @@
 
 QMK + VIA 双模式 keymap，目标硬件 DOIO KB16-01 Rev2（STM32F103xB，128 KB Flash）。
 
-当前版本 `0.7.2-qmk`：Codex L0 的全部按键、三个旋钮按下及六个旋转方向均优先读取 VIA；`KC_NO`/`KC_TRNS` 回退该位置的静态 Codex 功能，原本无功能的位置仍无动作。0.7.2 加入 EEPROM 兼容修复：固定 `KB` + schema 1 marker，只校验格式标记而非 payload CRC；当前 schema 保留键位/三个 encoder/宏/布局选项，0.7.1/更旧首次升级恢复一次 VIA 默认并写 marker，之后同 schema 跨日期/版本保留，不自动迁移旧页序或自定义位置。Codex L0 全部 16 个方键逐键按住白光，RGB/OLED 取消一小时空闲关闭；普通 VIA L1–L3 保留一小时计时。2026-11-04 用户确认“按下白光”通过（`db2cdf1` 同逻辑开发镜像）；正式 0.7.2 未刷入，普通层灯光、真实长时间无空闲关闭及 Flash 读回未验收。详见仓库 `docs/codex-via-keys.md`。
+当前版本 `0.7.2-qmk`：Codex L0 的全部按键、三个旋钮按下及六个旋转方向均优先读取 VIA；`KC_NO`/`KC_TRNS` 回退该位置的静态 Codex 功能，原本无功能的位置仍无动作。0.7.2 加入 EEPROM 兼容修复：固定 `KB` + schema 1 marker，只校验格式标记而非 payload CRC；当前 schema 保留键位/三个 encoder/宏/布局选项，0.7.1/更旧首次升级恢复一次 VIA 默认并写 marker，之后同 schema 跨日期/版本保留，不自动迁移旧页序或自定义位置。Codex L0 全部 16 个方键逐键按住白光，RGB/OLED 取消一小时空闲关闭；普通 VIA L1–L3 保留一小时计时。2026-11-04 用户确认“按下白光”通过（`db2cdf1` 同逻辑开发镜像）；正式 0.7.2 已刷入，并通过 USB/RPC 确认运行在 Codex L0，普通层灯光、真实长时间无空闲关闭及 Flash 读回未验收。详见仓库 `docs/codex-via-keys.md`。
 
 已发布/实机基线 `0.4.9-qmk`：OLED 不再跟随 Codex RGB 全灭关屏，无任务灯分配时保留 Logo，入层从首个可见帧展示完整约 1 秒。保留一小时静默/USB 挂起息屏、有效心跳及重复报文续时；RGB、四层、EEPROM、10 秒启动和当时左下角一秒退出不变。63 项固件离线检查通过，流水线版本已刷入，版本/切层及用户入层 Logo 目视确认通过；一小时息屏/按键唤醒按用户选择未实测。完整双语指南及展示见仓库根 README。
 

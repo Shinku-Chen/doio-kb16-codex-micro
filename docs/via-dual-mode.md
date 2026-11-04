@@ -1,6 +1,6 @@
 # QMK + VIA 双模式
 
-当前版本 `0.7.2-qmk`：Codex 第一页 L0 全部按键/旋钮 VIA 优先，空键回退原生功能；L1–L3 普通 VIA。无固定长按退出，切层由用户配置。Codex L0 支持逐键按住白光；Codex RGB/OLED 取消一小时空闲关闭，仅普通 VIA 层保留；USB 挂起全灭。0.7.2 加入 EEPROM 兼容修复：固定 `KB` + schema 1 marker，只校验格式标记而非 payload CRC；0.7.1/更旧首次升级恢复一次 VIA 默认并写 marker，之后同 schema 跨日期/版本保留，不迁移旧页序/自定义位置。2026-11-04 用户确认“按下白光”通过（`db2cdf1` 同逻辑开发镜像）；正式 0.7.2 未刷入。
+当前版本 `0.7.2-qmk`：Codex 第一页 L0 全部按键/旋钮 VIA 优先，空键回退原生功能；L1–L3 普通 VIA。无固定长按退出，切层由用户配置。Codex L0 支持逐键按住白光；Codex RGB/OLED 取消一小时空闲关闭，仅普通 VIA 层保留；USB 挂起全灭。0.7.2 加入 EEPROM 兼容修复：固定 `KB` + schema 1 marker，只校验格式标记而非 payload CRC；0.7.1/更旧首次升级恢复一次 VIA 默认并写 marker，之后同 schema 跨日期/版本保留，不迁移旧页序/自定义位置。2026-11-04 用户确认“按下白光”通过（`db2cdf1` 同逻辑开发镜像）；正式 0.7.2 已刷入，并通过 USB/RPC 确认运行在 Codex L0。
 
 ## 四层模型
 

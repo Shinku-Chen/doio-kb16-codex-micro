@@ -1,5 +1,17 @@
 # 开发与构建
 
+## 2026-11-04：0.7.2 正式发布与 Windows 刷写
+
+用户授权提交、Release 与刷机后，提交 `d0ce763f58f8b9ab989f1c2d531b6f7b7c2d2360` 推送到 main，并创建新标签 `v0.7.2-qmk`。标签流水线 `41839735013` 的 build/release 均成功，同提交 main 流水线 `41839734821` 成功。五份正式附件由 `github-actions[bot]` 发布；Mac 和 PC 分别下载正式附件，校验全部资产摘要，并使用真实流水线元数据执行 `release_bundle.py verify`，包括校验和、manifest、BIN/HEX、DFU CRC、双 USB 描述符和应用区边界。未上传本地候选、覆盖旧发布或移动旧标签。
+
+Orca Worker 在 Shinku-PC 捕获唯一 Maple `1EAF:0003`，serial `LLM 003`、devnum 82、alt 2 `Upload to Flash 0x8002000`。正式 BIN 为 50,388 字节，SHA-256 `48abd6041c4d529d6cb5f429cc636f466b1d0326f14879fd2eb9e61f28fd3bf1`；应用主体 50,372 字节单次下载完成，显示 100% / `Download done.` / `dfuMANIFEST-WAIT-RESET`，退出码 0。写入后曾停在 DFU；用户于 22:21:07 正常断电重插、未按 RESET，22:21:27 核对 DFU 已消失，`303A:8360` 复合设备的 10 个节点重新枚举，序列为 `12005300170000334C41534E00000000`。`sys.version` 返回 `0.7.2-qmk`（3.5 ms）；`device.status` 返回同版本、profile 0、layer_index 1、battery 100（4.6 ms）。层号是一基编号，对应 QMK Codex L0，不是普通 L1。重插后仅枚举及上述只读 RPC，未重刷、改配置、切层、注入灯态或导入备份。
+
+运行核验通过的范围仅为重新枚举、版本和当前层；本版实体白光/按键/灯效未逐项重测，不能沿用旧镜像的目视反馈冒充新验收。配置跨日期升级保留、EEPROM 掉电中断和 Flash 读回仍未实机验证。PC 本轮刷写与 RPC 日志保存在私有任务目录 `kb16-official-072-pc` 的 `flash.log`、`rpc.log`、`SUMMARY.txt`，误写警示单独保存在 `kb16-0.7.2-prep/BACKUP-WARNING.md`，原始备份文件及摘要未覆盖。
+
+**刷前备份存在非预期写入，不能称为完整原始配置备份。** 预检曾把 `0x15` 误当成读取层数命令；实际它是 `id_dynamic_keymap_set_encoder`，导致旧配置 L0 编码器 0 的逆时针项被写为 0，原值未知。备份记录了误写后的值；四层键位 160 字节两次整读一致、24 个 encoder 槽位、16 条宏共 715 字节和布局选项均已读取，但该逆时针项不能作为原值恢复，不猜测回填或自动导入备份。备份 JSON 与摘要仅保存在 PC 私有任务目录，内容不提交、不上传；此次误写已向用户披露，不能因升级本就恢复 VIA 默认而省略。后续正常断电重插和只读 RPC 不需要再次刷写或修改配置。
+
+后续 VIA 备份工具必须从固定 QMK 基线的 `quantum/via.h` 核对命令，并限制为已确认的读取命令：层数读取是 `0x11`，编码器读取是 `0x14`；`0x15` 为写入，不能用于探测。读取成功只能证明所读时点的数据完整性，不能证明探测前原始值未受影响。
+
 ## 2026-11-04：EEPROM 兼容策略修复（0.7.2-qmk）
 
 根因是 QMK VIA 的 `via_eeprom_is_valid()` 使用 `QMK_BUILDDATE` 派生三字节 magic：跨日期编译后，旧键位、encoder map 和宏虽仍在 EEPROM，却会被判为无效并由 `eeconfig_init_via()` 恢复默认。项目 keymap 另有 `KB16`/层序/自定义位置 stamp 与迁移，形成第二套校验，并在 `keyboard_post_init_user()` 中晚于 `via_init()` 执行，不能阻止 VIA 先清空配置。

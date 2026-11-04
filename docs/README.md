@@ -2,7 +2,7 @@
 
 本仓库是 DOIO KB16-01 Rev2 的 Codex Micro 兼容固件与工具的工作副本。目标是把 16 键 + 3 旋钮 + 128×32 OLED 的 KB16 作为 Codex Micro 控制器使用。
 
-> 当前发布版本 `0.7.2-qmk`：L0 Codex 全部按键/旋钮 VIA 优先，KC_NO/KC_TRNS 回退原生；L1–L3 普通 VIA，自配 MO/TO，无固定长按。Codex L0 全部 16 个方键逐键按住白光；Codex RGB/OLED 不再一小时空闲关闭，仅普通 VIA L1–L3 保留。0.7.2 加入 EEPROM 兼容修复：固定 `KB` + schema 1 marker，只校验格式标记而非 payload CRC；当前 schema 保留键位/三个 encoder/宏/布局选项，0.7.1/更旧首次升级恢复一次 VIA 默认并写新 marker，不自动迁移旧页序/自定义位置。92 组固件检查、13 项打包测试及本地编译通过。2026-11-04 用户确认“按下白光”通过（基于 `db2cdf1` 同逻辑开发镜像）；正式 0.7.2 未刷入，普通层灯光、真实长时间无空闲关闭及 Flash 读回未验收。详见 [混合层](codex-via-keys.md)、[开发](development.md)。刷机需拆外壳按内部 RESET，见 [使用](usage.md)；展示见 [中文 README](../README.md) / [English README](../README.en.md)。
+> 当前发布版本 `0.7.2-qmk`：L0 Codex 全部按键/旋钮 VIA 优先，KC_NO/KC_TRNS 回退原生；L1–L3 普通 VIA，自配 MO/TO，无固定长按。Codex L0 全部 16 个方键逐键按住白光；Codex RGB/OLED 不再一小时空闲关闭，仅普通 VIA L1–L3 保留。0.7.2 加入 EEPROM 兼容修复：固定 `KB` + schema 1 marker，只校验格式标记而非 payload CRC；当前 schema 保留键位/三个 encoder/宏/布局选项，0.7.1/更旧首次升级恢复一次 VIA 默认并写新 marker，不自动迁移旧页序/自定义位置。92 组固件检查、13 项打包测试及本地编译通过。2026-11-04 用户确认“按下白光”通过（基于 `db2cdf1` 同逻辑开发镜像）；正式 0.7.2 已刷入，并通过 USB/RPC 确认运行在 Codex L0，普通层灯光、真实长时间无空闲关闭及 Flash 读回未验收。详见 [混合层](codex-via-keys.md)、[开发](development.md)。刷机需拆外壳按内部 RESET，见 [使用](usage.md)；展示见 [中文 README](../README.md) / [English README](../README.en.md)。
 
 ## 快速开始
 
